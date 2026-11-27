@@ -3,12 +3,12 @@ import { useLiveQuery } from 'dexie-react-hooks'
 import { ChartNoAxesColumn, MoreHorizontal, Shapes, Sparkles, Target } from 'lucide-react'
 import { db } from '../../lib/db'
 import { startOfWeek, today } from '../../lib/dates'
-import { Chips, IconButton, MenuItem, PageHeader, Segmented, Sheet, Switch } from '../../components/ui'
+import { IconButton, MenuItem, PageHeader, Segmented, Sheet, Switch } from '../../components/ui'
 import { Todos } from './Todos'
 import { Goals } from './Goals'
 import { Habits } from './Habits'
 import { CategoryManager } from './CategoryManager'
-import { CategoriesContext, CategoryTag, useCategoriesQuery } from './categories'
+import { CategoriesContext, useCategoriesQuery } from './categories'
 import { ReportSheet } from './PointsUI'
 import { LEVELS, LEVEL_POINTS, updatePointsSettings, usePointsSettings } from './points'
 import { GoalInput } from './GoalInput'
@@ -40,14 +40,11 @@ export default function GoalsTodos() {
     const v = read('goalsView')
     return isView(v) ? v : 'todos'
   })
-  const [filter, setFilter] = useState<string | null>(() => read('goalsCategory'))
   const [managing, setManaging] = useState(false)
   const [menuOpen, setMenuOpen] = useState(false)
   const [report, setReport] = useState<string | null>(null)
   const points = usePointsSettings()
   const cats = useCategoriesQuery()
-  // Gibt es die gemerkte Kategorie nicht mehr, gilt wieder „Alle“.
-  const category = filter && cats.some((c) => c.id === filter) ? filter : null
 
   const t = today()
   const subtitle = useLiveQuery(async () => {
@@ -60,11 +57,6 @@ export default function GoalsTodos() {
   const changeView = (v: View) => {
     setView(v)
     write('goalsView', v)
-  }
-  const changeCategory = (id: string) => {
-    const next = id || null
-    setFilter(next)
-    write('goalsCategory', next)
   }
 
   return (
@@ -85,14 +77,10 @@ export default function GoalsTodos() {
       />
       <div className="space-y-3 px-5 pb-2">
         <Segmented value={view} options={VIEWS} onChange={changeView} />
-        {/* To-dos sind nach Zeit gruppiert – dort keine Kategorie-Filter, damit es ruhig bleibt */}
-        {view !== 'todos' && cats.length > 0 && (
-          <Chips value={category ?? ''} options={[{ id: '', label: 'Alle' }, ...cats.map((c) => ({ id: c.id, label: <CategoryTag cat={c} size={14} /> }))]} onChange={changeCategory} />
-        )}
       </div>
       {view === 'todos' && <Todos onReport={setReport} />}
-      {view === 'goals' && <Goals category={category} />}
-      {view === 'habits' && <Habits category={category} />}
+      {view === 'goals' && <Goals category={null} />}
+      {view === 'habits' && <Habits category={null} />}
       {managing && <CategoryManager onClose={() => setManaging(false)} />}
       <ReportSheet week={report} onClose={() => setReport(null)} />
 
