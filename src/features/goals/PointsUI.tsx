@@ -3,9 +3,9 @@ import { useLiveQuery } from 'dexie-react-hooks'
 import { Check, ChevronLeft, ChevronRight, Sparkles, X } from 'lucide-react'
 import { db, type GoalCategory, type Level } from '../../lib/db'
 import { addDays, startOfWeek } from '../../lib/dates'
-import { IconButton, Sheet } from '../../components/ui'
+import { Chips, IconButton, Sheet } from '../../components/ui'
 import { SymbolIcon } from '../../components/icons'
-import { LEVELS, LEVEL_POINTS, cycleLevel, levelInfo, pointsLabel, usePointsSettings, weekLabel, weekStats, weeksWithPoints } from './points'
+import { LEVELS, LEVEL_POINTS, levelInfo, pointsLabel, usePointsSettings, weekLabel, weekStats, weeksWithPoints } from './points'
 
 /** Ein bis drei Pünktchen für die Stufe (Leicht ●, Mittel ●●, Wichtig ●●●). */
 export function LevelDots({ level, muted }: { level: Level; muted?: boolean }) {
@@ -19,40 +19,13 @@ export function LevelDots({ level, muted }: { level: Level; muted?: boolean }) {
   )
 }
 
-/** Stufenauswahl als Pillen mit Pünktchen, inkl. „Keine“ (= keine Punkte). */
+/** Stufenauswahl als Chips mit Pünktchen, inkl. „Keine“ (= keine Punkte). */
 export function LevelPicker({ value, onChange }: { value: Level | undefined; onChange: (l: Level | undefined) => void }) {
-  const pill = (active: boolean) =>
-    `flex h-10 items-center justify-center gap-1.5 rounded-full border text-sm font-medium transition active:scale-95 ${
-      active ? 'border-brand bg-brand-soft text-brand-ink' : 'border-line bg-surface text-muted'
-    }`
-  return (
-    <div className="flex gap-1.5" role="radiogroup">
-      <button type="button" role="radio" aria-checked={!value} onClick={() => onChange(undefined)} className={`${pill(!value)} px-3.5`}>
-        Keine
-      </button>
-      {LEVELS.map((l) => (
-        <button key={l.id} type="button" role="radio" aria-checked={value === l.id} onClick={() => onChange(l.id)} className={`${pill(value === l.id)} flex-1`}>
-          <LevelDots level={l.id} />
-          {l.label}
-        </button>
-      ))}
-    </div>
-  )
-}
-
-/** Unauffälliger Umschalter beim Anlegen: „Punkte“ → Leicht → Mittel → Wichtig → keine. */
-export function LevelToggle({ value, onChange }: { value: Level | undefined; onChange: (l: Level | undefined) => void }) {
-  return (
-    <button
-      type="button"
-      onClick={() => onChange(cycleLevel(value))}
-      aria-label={value ? `Punkte: ${levelInfo(value).label}, antippen zum Ändern` : 'Keine Punkte, antippen für Punkte'}
-      className={`flex h-9 items-center gap-1.5 rounded-full px-2 text-sm font-semibold ${value ? 'text-brand' : 'text-muted'}`}
-    >
-      {value ? <LevelDots level={value} /> : <Sparkles size={15} />}
-      {value ? `${levelInfo(value).label} · ${LEVEL_POINTS[value]} P.` : 'Punkte'}
-    </button>
-  )
+  const options = [
+    { id: '', label: 'Keine' },
+    ...LEVELS.map((l) => ({ id: l.id, label: <><LevelDots level={l.id} /> {l.label}</> })),
+  ]
+  return <Chips value={value ?? ''} options={options} onChange={(id) => onChange((id || undefined) as Level | undefined)} />
 }
 
 /** Dezente Zeile mit dem Punktestand der laufenden Woche. */

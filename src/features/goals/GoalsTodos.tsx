@@ -85,11 +85,12 @@ export default function GoalsTodos() {
       />
       <div className="space-y-3 px-5 pb-2">
         <Segmented value={view} options={VIEWS} onChange={changeView} />
-        {cats.length > 0 && (
+        {/* To-dos sind nach Zeit gruppiert – dort keine Kategorie-Filter, damit es ruhig bleibt */}
+        {view !== 'todos' && cats.length > 0 && (
           <Chips value={category ?? ''} options={[{ id: '', label: 'Alle' }, ...cats.map((c) => ({ id: c.id, label: <CategoryTag cat={c} size={14} /> }))]} onChange={changeCategory} />
         )}
       </div>
-      {view === 'todos' && <Todos category={category} onReport={setReport} />}
+      {view === 'todos' && <Todos onReport={setReport} />}
       {view === 'goals' && <Goals category={category} />}
       {view === 'habits' && <Habits category={category} />}
       {managing && <CategoryManager onClose={() => setManaging(false)} />}

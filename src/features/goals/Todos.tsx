@@ -1,36 +1,28 @@
 import { useMemo, useState, type FormEvent } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
-import { CalendarDays, ChevronDown, Plus, Shapes, CircleCheck } from 'lucide-react'
-import { SymbolIcon, symbolIcon } from '../../components/icons'
+import { ChevronDown, Plus, CircleCheck } from 'lucide-react'
+import { SymbolIcon } from '../../components/icons'
 import { db, type Level, type Todo, newId } from '../../lib/db'
-import { endOfWeek, formatDate, relativeDate, startOfWeek, today } from '../../lib/dates'
+import { endOfWeek, formatDate, relativeDate, startOfWeek } from '../../lib/dates'
 import { Button, CheckCircle, Chips, EmptyState, Field, SectionTitle, Sheet, inputClass } from '../../components/ui'
 import { GROUPS, GROUP_LABELS, HORIZONS, groupOf, horizonOf, type GroupId } from './horizons'
-import { CategoryPicker, categoryLabel, createCategory, extractHashtag, findCategory, useCategories } from './categories'
+import { CategoryPicker, createCategory, extractHashtag, findCategory, useCategories } from './categories'
 import { LEVEL_POINTS, levelInfo, nextLevel, pointsLabel, usePointsSettings, weekStats } from './points'
-import { LevelDots, LevelPicker, LevelToggle, ReviewCard, WeekProgress } from './PointsUI'
+import { LevelDots, LevelPicker, ReviewCard, WeekProgress } from './PointsUI'
 import { toast } from '../../components/Toast'
 
 export const toggleTodo = (t: Todo) => db.todos.update(t.id, { done: !t.done, doneAt: t.done ? undefined : Date.now() })
 
-export function Todos({ category, onReport }: { category: string | null; onReport: (week: string) => void }) {
+export function Todos({ onReport }: { onReport: (week: string) => void }) {
   const all = useLiveQuery(() => db.todos.toArray(), [])
   // Archivierte (erledigt und entfernt) bleiben nur für die Punkte-Rückblicke erhalten.
-  const todos = useMemo(() => all?.filter((t) => !t.archived && (!category || t.category === category)), [all, category])
+  const todos = useMemo(() => all?.filter((t) => !t.archived), [all])
   const cats = useCategories()
   const points = usePointsSettings()
   const week = useMemo(() => (points.enabled && all ? weekStats(all, cats, startOfWeek()) : undefined), [points.enabled, all, cats])
-  const [text, setText] = useState('')
-  const [due, setDue] = useState<string | undefined>(() => endOfWeek())
-  const [editing, setEditing] = useState<Todo | null>(null)
+  // null = zu, Todo ohne id = neues To-do
+  const [editing, setEditing] = useState<Draft | null>(null)
   const [showDone, setShowDone] = useState(false)
-  // Kategorie für neue To-dos – bleibt ausgewählt, damit man mehrere To-dos fürs selbe Projekt anlegen kann.
-  const [newCategory, setNewCategory] = useState<string | undefined>()
-  const [pickerOpen, setPickerOpen] = useState(false)
-  // Punkte gibt es nur, wenn man sie beim Anlegen bewusst wählt.
-  const [newLevel, setNewLevel] = useState<Level | undefined>()
-  const current = findCategory(cats, category ?? undefined)
-  const chosen = findCategory(cats, newCategory)
 
   const { groups, done } = useMemo(() => {
     const open = (todos ?? []).filter((t) => !t.done).sort((a, b) => (a.due ?? '9999').localeCompare(b.due ?? '9999') || a.createdAt - b.createdAt)
@@ -41,89 +33,23 @@ export function Todos({ category, onReport }: { category: string | null; onRepor
 
   if (!todos) return null
 
-  const submit = async (e: FormEvent) => {
-    e.preventDefault()
-    // Vorrang: „#Masterprojekt“ im Text (legt die Kategorie bei Bedarf an) → oben gewählte Kategorie → aktiver Filter.
-    const { title, category: hashtag } = extractHashtag(text)
-    if (!title) return
-    const cat = (hashtag && (await createCategory(hashtag))) || chosen?.id || current?.id
-    const level = points.enabled ? newLevel : undefined
-    await db.todos.add({ id: newId(), title, due, done: false, category: cat, ...(level && { level }), createdAt: Date.now() } as Todo)
-    setText('')
-    setNewLevel(undefined)
-    setPickerOpen(false)
-  }
-
   return (
     <>
-      <form onSubmit={submit} className="sticky top-0 z-30 space-y-2 bg-bg/90 px-5 py-2 backdrop-blur-lg">
-        <div className="flex gap-2">
-          <input value={text} onChange={(e) => setText(e.target.value)} placeholder={current ? `Neues To-do in ${categoryLabel(current)}` : 'Neues To-do'} enterKeyHint="done" autoComplete="off" className={inputClass} />
-          <button
-            type="submit"
-            aria-label="To-do hinzufügen"
-            disabled={!text.trim()}
-            className="grid size-11 shrink-0 place-items-center rounded-full bg-brand text-surface transition active:scale-95 disabled:opacity-40"
-          >
-            <Plus size={22} />
-          </button>
-        </div>
-        <Chips
-          value={horizonOf(due)}
-          options={HORIZONS}
-          onChange={(id) => setDue(HORIZONS.find((h) => h.id === id)!.due())}
-          trailing={<DateChip value={due} onChange={setDue} />}
-        />
-        {(!current || points.enabled) && (
-          <div className="flex flex-wrap items-center gap-x-3">
-            {/* Bei aktivem Filter ist die Kategorie klar – dann keine eigene Auswahl. */}
-            {!current && (
-            <button
-              type="button"
-              onClick={() => setPickerOpen(!pickerOpen)}
-              aria-expanded={pickerOpen}
-              className="-ml-1 flex h-9 items-center gap-1.5 rounded-full px-2 text-sm font-semibold text-brand"
-            >
-              <Shapes size={15} />
-              {pickerOpen ? 'Fertig' : chosen ? `Kategorie: ${categoryLabel(chosen)}` : 'Kategorie wählen'}
-            </button>
-            )}
-            {points.enabled && <LevelToggle value={newLevel} onChange={setNewLevel} />}
-          </div>
-        )}
-        {!current && (
-          <>
-            {pickerOpen && (
-              <div className="rounded-3xl bg-surface p-3">
-                <CategoryPicker value={newCategory} onChange={(id) => setNewCategory(id)} />
-              </div>
-            )}
-          </>
-        )}
-      </form>
+      <div className="px-5 pt-2">
+        <Button variant="secondary" className="w-full" onClick={() => setEditing({ title: '', due: endOfWeek() })}>
+          <Plus size={18} /> Neues To-do
+        </Button>
+      </div>
 
       {points.enabled && week && (
         <div className="mt-2 space-y-1 px-5">
           <ReviewCard onOpen={onReport} />
-          {current ? (
-            <WeekProgress
-              points={week.byCategory.find((c) => c.id === current.id)?.points ?? 0}
-              goal={current.weeklyGoal}
-              label={`${current.name} diese Woche`}
-              onClick={() => onReport(week.start)}
-            />
-          ) : (
-            <WeekProgress points={week.total} goal={points.weeklyGoal} label="diese Woche" onClick={() => onReport(week.start)} />
-          )}
+          <WeekProgress points={week.total} goal={points.weeklyGoal} label="diese Woche" onClick={() => onReport(week.start)} />
         </div>
       )}
 
       {todos.length === 0 ? (
-        current ? (
-          <EmptyState icon={symbolIcon(current.emoji) ?? Shapes} title={`Keine To-dos in ${current.name}`} text="To-dos, die du jetzt oben anlegst, landen automatisch in dieser Kategorie." />
-        ) : (
-          <EmptyState icon={CircleCheck} title="Nichts zu tun?" text="Trage oben ein To-do ein und wähle, bis wann es erledigt sein soll." />
-        )
+        <EmptyState icon={CircleCheck} title="Nichts zu tun?" text="Lege ein To-do an und wähle, bis wann es erledigt sein soll." />
       ) : (
         <div className="mt-4 space-y-5 px-5">
           {groups.length === 0 && (
@@ -141,7 +67,7 @@ export function Todos({ category, onReport }: { category: string | null; onRepor
               </SectionTitle>
               <ul className="overflow-hidden rounded-3xl bg-surface">
                 {g.items.map((t) => (
-                  <TodoRow key={t.id} todo={t} group={g.id} showCategory={!current} onEdit={() => setEditing(t)} />
+                  <TodoRow key={t.id} todo={t} group={g.id} onEdit={() => setEditing(t)} />
                 ))}
               </ul>
             </section>
@@ -170,7 +96,7 @@ export function Todos({ category, onReport }: { category: string | null; onRepor
               {showDone && (
                 <ul className="overflow-hidden rounded-3xl bg-surface/60">
                   {done.map((t) => (
-                    <TodoRow key={t.id} todo={t} showCategory={!current} onEdit={() => setEditing(t)} />
+                    <TodoRow key={t.id} todo={t} onEdit={() => setEditing(t)} />
                   ))}
                 </ul>
               )}
@@ -184,10 +110,10 @@ export function Todos({ category, onReport }: { category: string | null; onRepor
   )
 }
 
-function TodoRow({ todo, group, showCategory, onEdit }: { todo: Todo; group?: GroupId; showCategory: boolean; onEdit: () => void }) {
+function TodoRow({ todo, group, onEdit }: { todo: Todo; group?: GroupId; onEdit: () => void }) {
   const cats = useCategories()
   // Nur das Symbol der Kategorie, dezent vor dem Titel – keine Plakette.
-  const catEmoji = showCategory ? findCategory(cats, todo.category)?.emoji : undefined
+  const catEmoji = findCategory(cats, todo.category)?.emoji
   const points = usePointsSettings().enabled
   const level = todo.level
   const overdue = group === 'überfällig'
@@ -232,7 +158,9 @@ function TodoRow({ todo, group, showCategory, onEdit }: { todo: Todo; group?: Gr
   )
 }
 
-function TodoEditor({ todo, onClose }: { todo: Todo; onClose: () => void }) {
+type Draft = Partial<Todo> & { title: string }
+
+function TodoEditor({ todo, onClose }: { todo: Draft; onClose: () => void }) {
   const [title, setTitle] = useState(todo.title)
   const [due, setDue] = useState(todo.due)
   const [category, setCategory] = useState(todo.category)
@@ -241,21 +169,26 @@ function TodoEditor({ todo, onClose }: { todo: Todo; onClose: () => void }) {
 
   const save = async (e: FormEvent) => {
     e.preventDefault()
-    if (!title.trim()) return
-    await db.todos.update(todo.id, { title: title.trim(), due, category, level: points ? level : todo.level })
+    // „#Masterprojekt“ im Titel legt die Kategorie bei Bedarf an
+    const { title: clean, category: hashtag } = extractHashtag(title)
+    if (!clean) return
+    const cat = (hashtag && (await createCategory(hashtag))) || category
+    const data = { title: clean, due, category: cat, level: points ? level : todo.level }
+    if (todo.id) await db.todos.update(todo.id, data)
+    else await db.todos.add({ ...data, id: newId(), done: false, createdAt: Date.now() } as Todo)
     onClose()
   }
 
   const remove = async () => {
-    await db.todos.delete(todo.id)
+    if (todo.id) await db.todos.delete(todo.id)
     onClose()
   }
 
   return (
-    <Sheet open onClose={onClose} title="To-do bearbeiten">
+    <Sheet open onClose={onClose} title={todo.id ? 'To-do bearbeiten' : 'Neues To-do'}>
       <form onSubmit={save} className="space-y-5 pt-1 pb-2">
         <Field label="Was ist zu tun?">
-          <input value={title} onChange={(e) => setTitle(e.target.value)} className={inputClass} />
+          <input autoFocus={!todo.id} value={title} onChange={(e) => setTitle(e.target.value)} placeholder="z. B. Steuererklärung abschicken" className={inputClass} />
         </Field>
 
         <div className="space-y-2">
@@ -272,51 +205,23 @@ function TodoEditor({ todo, onClose }: { todo: Todo; onClose: () => void }) {
 
         {points && (
           <div className="space-y-2">
-            <span className="block text-sm font-semibold">Stufe</span>
+            <span className="block text-sm font-semibold">Punkte</span>
             <LevelPicker value={level} onChange={setLevel} />
             <p className="text-xs text-muted">{level ? pointsLabel(LEVEL_POINTS[level]) : 'Keine Punkte für dieses To-do'}</p>
           </div>
         )}
 
         <div className="flex gap-2 pt-1">
-          <Button variant="ghost" onClick={remove} className="text-warn">
-            Löschen
-          </Button>
+          {todo.id && (
+            <Button variant="ghost" onClick={remove} className="text-warn">
+              Löschen
+            </Button>
+          )}
           <Button type="submit" disabled={!title.trim()} className="flex-1">
-            Speichern
+            {todo.id ? 'Speichern' : 'Hinzufügen'}
           </Button>
         </div>
       </form>
     </Sheet>
-  )
-}
-
-/** Chip mit Datumsauswahl: zeigt das gewählte Datum, wenn es zu keinem Horizont passt. */
-function DateChip({ value, onChange }: { value: string | undefined; onChange: (v: string | undefined) => void }) {
-  const custom = !!value && horizonOf(value) === undefined
-  return (
-    <label
-      className={`relative flex h-9 shrink-0 items-center gap-1.5 rounded-full border px-3.5 text-sm font-medium transition active:scale-95 ${
-        custom ? 'border-brand bg-brand-soft text-brand-ink' : 'border-line bg-surface text-muted'
-      }`}
-    >
-      <CalendarDays size={15} aria-hidden />
-      {custom ? formatDate(value) : 'Datum'}
-      <input
-        type="date"
-        aria-label="Fällig bis Datum"
-        min={today()}
-        value={value ?? ''}
-        onChange={(e) => e.target.value && onChange(e.target.value)}
-        onClick={(e) => {
-          try {
-            e.currentTarget.showPicker?.()
-          } catch {
-            /* ältere Browser öffnen den Picker selbst */
-          }
-        }}
-        className="absolute inset-0 size-full cursor-pointer opacity-0"
-      />
-    </label>
   )
 }
