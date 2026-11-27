@@ -1,8 +1,9 @@
 import { useMemo, useState, type FormEvent, type ReactNode } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
-import { BookOpen, Bookmark, MoreHorizontal, Plus, Trash2, BookmarkPlus, ListX, Eraser, ShoppingBasket, CircleCheck } from 'lucide-react'
+import { BookOpen, Bookmark, MoreHorizontal, Plus, Trash2, BookmarkPlus, ListX, Eraser, ShoppingBasket, CircleCheck, ListPlus } from 'lucide-react'
 import { SymbolIcon } from '../../components/icons'
-import { addToList, clearChecked, clearList, db, deleteItem, saveListAsTemplate, toggleItem, type ListItem, type Recipe } from '../../lib/db'
+import { addToList, clearChecked, clearList, db, deleteItem, saveListAsTemplate, toggleItem, type ListItem, type Product, type Recipe } from '../../lib/db'
+import { likelyTypo } from '../../lib/products'
 import { CATEGORIES } from '../../lib/categories'
 import { parseEntry } from '../../lib/parse'
 import { Button, CheckCircle, EmptyState, IconButton, PageHeader, Sheet, inputClass } from '../../components/ui'
@@ -10,6 +11,8 @@ import { toast } from '../../components/Toast'
 import { confirmDialog } from '../../components/Confirm'
 import { RecipesSheet } from './RecipesSheet'
 import { TemplatesSheet } from './TemplatesSheet'
+import { ProductsSheet } from './ProductsSheet'
+import { ProductSuggestions } from './ProductSuggestions'
 
 export default function ShoppingList() {
   const items = useLiveQuery(() => db.listItems.toArray(), [])
@@ -19,6 +22,9 @@ export default function ShoppingList() {
   const [saveOpen, setSaveOpen] = useState(false)
   const [recipesOpen, setRecipesOpen] = useState(false)
   const [templatesOpen, setTemplatesOpen] = useState(false)
+  const [productsOpen, setProductsOpen] = useState(false)
+  // Rückfrage „Meintest du …?“, wenn ein neues Produkt einem bekannten sehr ähnlich ist
+  const [typo, setTypo] = useState<{ entry: { name: string; quantity: string }; suggestion: Product } | null>(null)
 
   const open = useMemo(() => (items ?? []).filter((i) => !i.checked), [items])
   const done = useMemo(() => (items ?? []).filter((i) => i.checked).sort((a, b) => a.name.localeCompare(b.name)), [items])
@@ -34,11 +40,19 @@ export default function ShoppingList() {
   if (!items) return null
   const total = items.length
 
+  const add = async (entry: { name: string; quantity: string; category?: Product['category'] }) => {
+    await addToList([entry])
+    setText('')
+    setTypo(null)
+  }
+
   const submit = async (e: FormEvent) => {
     e.preventDefault()
     if (!text.trim()) return
-    await addToList([parseEntry(text)])
-    setText('')
+    const entry = parseEntry(text)
+    const suggestion = likelyTypo(await db.products.toArray(), entry.name)
+    if (suggestion) setTypo({ entry, suggestion })
+    else await add(entry)
   }
 
   const addRecipe = async (r: Recipe) => {
@@ -76,7 +90,10 @@ export default function ShoppingList() {
         <div className="flex gap-2">
           <input
             value={text}
-            onChange={(e) => setText(e.target.value)}
+            onChange={(e) => {
+              setText(e.target.value)
+              setTypo(null)
+            }}
             placeholder="z. B. 2 Avocados oder Milch"
             enterKeyHint="done"
             autoComplete="off"
@@ -90,6 +107,29 @@ export default function ShoppingList() {
           >
             <Plus size={22} />
           </button>
+        </div>
+        <div className="mt-2 empty:hidden">
+          {typo ? (
+            <div className="flex flex-wrap items-center gap-2 rounded-3xl bg-surface px-4 py-3 text-sm">
+              <span className="w-full text-muted">„{typo.entry.name}“ ist neu. Meintest du:</span>
+              <button
+                type="button"
+                onClick={() => add({ ...typo.entry, name: typo.suggestion.name, category: typo.suggestion.category })}
+                className="h-10 rounded-full bg-brand px-4 font-medium text-surface transition active:scale-95"
+              >
+                {typo.suggestion.name}
+              </button>
+              <button type="button" onClick={() => add(typo.entry)} className="h-10 rounded-full px-3 font-medium text-ink/80 transition hover:bg-bg">
+                „{typo.entry.name}“ hinzufügen
+              </button>
+            </div>
+          ) : text.trim() ? (
+            <ProductSuggestions query={text} onPick={(p, quantity) => add({ name: p.name, quantity, category: p.category })} />
+          ) : (
+            <button type="button" onClick={() => setProductsOpen(true)} className="-ml-1 flex h-10 items-center gap-1.5 rounded-full px-2 text-sm font-medium text-muted transition hover:text-ink">
+              <ListPlus size={16} /> Aus Produkten wählen
+            </button>
+          )}
         </div>
       </form>
 
@@ -192,6 +232,7 @@ export default function ShoppingList() {
       <SaveSheet open={saveOpen} onClose={() => setSaveOpen(false)} />
       <RecipesSheet open={recipesOpen} onClose={() => setRecipesOpen(false)} />
       <TemplatesSheet open={templatesOpen} onClose={() => setTemplatesOpen(false)} />
+      <ProductsSheet open={productsOpen} onClose={() => setProductsOpen(false)} />
     </>
   )
 }

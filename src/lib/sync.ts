@@ -1,7 +1,7 @@
 import { useSyncExternalStore } from 'react'
 import Dexie, { type Transaction } from 'dexie'
 import type { RealtimeChannel, Session } from '@supabase/supabase-js'
-import { db, seedIfEmpty } from './db'
+import { db, seedIfEmpty, seedProducts } from './db'
 import { supabase } from './supabase'
 import { confirmDialog } from '../components/Confirm'
 
@@ -17,7 +17,7 @@ import { confirmDialog } from '../components/Confirm'
  *
  * Neue Tabellen, die synchronisiert werden sollen: in SYNC_TABLES eintragen (IDs müssen Text-IDs aus newId() sein).
  */
-export const SYNC_TABLES = ['listItems', 'recipes', 'templates', 'fixedCosts', 'todos', 'goals', 'goalCategories', 'habits'] as const
+export const SYNC_TABLES = ['listItems', 'recipes', 'templates', 'fixedCosts', 'todos', 'goals', 'goalCategories', 'habits', 'products'] as const
 type SyncTable = (typeof SYNC_TABLES)[number]
 const isSyncTable = (t: string): t is SyncTable => (SYNC_TABLES as readonly string[]).includes(t)
 
@@ -251,9 +251,10 @@ function stop() {
 /** Einmal beim Start aufrufen: verfolgt die Anmeldung und startet/stoppt den Sync. */
 export function initSync() {
   if (!supabase) {
-    void seedIfEmpty()
+    void seedIfEmpty().then(seedProducts)
     return
   }
+  void seedProducts()
   supabase.auth.onAuthStateChange((_event, session) => {
     setState({ session })
     // Supabase-Aufrufe nicht direkt im Callback (kann sonst blockieren), daher setTimeout

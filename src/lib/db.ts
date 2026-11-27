@@ -28,6 +28,18 @@ export interface Template {
   createdAt: number
 }
 
+/** Bekanntes Produkt für Vorschläge und die Produktauswahl. Wird beim Einkaufen und in Rezepten/Listen automatisch gemerkt. */
+export interface Product {
+  /** Aus dem Namen abgeleitet (productId), damit Geräte beim Sync nicht doppelt anlegen */
+  id: string
+  name: string
+  category: CategoryId
+  /** Wie oft auf die Einkaufsliste gesetzt – für die Reihenfolge der Vorschläge */
+  uses: number
+  lastUsed?: number
+  createdAt: number
+}
+
 // ---------- Haushaltsübersicht ----------
 
 export type ContractKind = 'strom' | 'gas' | 'internet'
@@ -135,6 +147,7 @@ export const db = new Dexie('haushalt') as Dexie & {
   tagMeta: EntityTable<TagMeta, 'key'>
   goalCategories: EntityTable<GoalCategory, 'id'>
   habits: EntityTable<Habit, 'id'>
+  products: EntityTable<Product, 'id'>
 }
 
 db.version(1).stores({
@@ -222,6 +235,10 @@ db.version(8)
     for (const n of names) await tx.table(n).bulkAdd(await tx.table(`${n}_v7`).toArray())
   })
 
+db.version(9).stores({
+  products: 'id, name',
+})
+
 /** Weltweit eindeutige ID für Datensätze (crypto.randomUUID fehlt bei http im WLAN, getRandomValues nicht). */
 export function newId() {
   const b = crypto.getRandomValues(new Uint8Array(16))
@@ -234,8 +251,51 @@ export const uid = () => Date.now().toString(36) + Math.random().toString(36).sl
 
 const norm = (s: string) => s.trim().toLowerCase()
 
+/** Gleicher Name (ohne Groß-/Kleinschreibung, Leerzeichen) → gleiche ID, auf allen Geräten. */
+export const productId = (name: string) => 'p:' + norm(name).replace(/\s+/g, ' ')
+
+/**
+ * Merkt sich Produkte. `used`: zählt als Einkauf (für die Reihenfolge der Vorschläge) – nicht beim bloßen Speichern
+ * eines Rezepts. Vorhandene Produkte behalten Schreibweise und Kategorie.
+ */
+export async function rememberProducts(items: Array<{ name: string; category?: CategoryId }>, used = true) {
+  const now = Date.now()
+  await db.transaction('rw', db.products, async () => {
+    for (const raw of items) {
+      const name = raw.name.trim().replace(/\s+/g, ' ')
+      if (!name) continue
+      const id = productId(name)
+      const existing = await db.products.get(id)
+      if (existing) {
+        if (used) await db.products.update(id, { uses: existing.uses + 1, lastUsed: now })
+      } else {
+        await db.products.add({
+          id,
+          name: name.charAt(0).toUpperCase() + name.slice(1),
+          category: raw.category ?? guessCategory(name),
+          uses: used ? 1 : 0,
+          lastUsed: used ? now : undefined,
+          createdAt: now,
+        })
+      }
+    }
+  })
+}
+
+export const deleteProduct = (id: string) => db.products.delete(id)
+
+/** Einmalig: Produkte aus vorhandener Liste, Rezepten und gespeicherten Listen übernehmen. */
+export async function seedProducts() {
+  const KEY = 'products:seeded'
+  if (localStorage.getItem(KEY)) return
+  const [items, recipes, templates] = await Promise.all([db.listItems.toArray(), db.recipes.toArray(), db.templates.toArray()])
+  await rememberProducts([...items, ...recipes.flatMap((r) => r.ingredients), ...templates.flatMap((t) => t.items)], false)
+  localStorage.setItem(KEY, '1')
+}
+
 /** Fügt Zutaten zur Einkaufsliste hinzu. Bereits vorhandene Produkte werden zusammengeführt statt doppelt angelegt. */
 export async function addToList(items: Array<Partial<Ingredient> & { name: string }>) {
+  await rememberProducts(items)
   await db.transaction('rw', db.listItems, async () => {
     const existing = await db.listItems.toArray()
     for (const raw of items) {

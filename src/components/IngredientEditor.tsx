@@ -4,6 +4,7 @@ import type { Ingredient } from '../lib/db'
 import { guessCategory } from '../lib/categories'
 import { parseEntry } from '../lib/parse'
 import { inputClass } from './ui'
+import { ProductSuggestions } from '../features/shopping/ProductSuggestions'
 
 /** Bearbeitbare Zutatenliste – genutzt für Rezepte und gespeicherte Listen. */
 export function IngredientEditor({ value, onChange }: { value: Ingredient[]; onChange: (v: Ingredient[]) => void }) {
@@ -83,6 +84,15 @@ export function IngredientEditor({ value, onChange }: { value: Ingredient[]; onC
           <Plus size={20} />
         </button>
       </div>
+      {draft.trim() && (
+        <ProductSuggestions
+          query={draft}
+          onPick={(p, quantity) => {
+            onChange([...value, { name: p.name, quantity, category: p.category }])
+            setDraft('')
+          }}
+        />
+      )}
     </div>
   )
 }

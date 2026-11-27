@@ -1,7 +1,7 @@
 import { useState, type FormEvent } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { Pencil, Plus, ShoppingCart } from 'lucide-react'
-import { addToList, db, type Ingredient, type Recipe, newId } from '../../lib/db'
+import { addToList, db, rememberProducts, type Ingredient, type Recipe, newId } from '../../lib/db'
 import { Button, Field, IconButton, Sheet, inputClass } from '../../components/ui'
 import { confirmDialog } from '../../components/Confirm'
 import { IngredientEditor } from '../../components/IngredientEditor'
@@ -70,6 +70,7 @@ function RecipeEditor({ draft, onClose }: { draft: Draft; onClose: () => void })
     const data = { name: d.name.trim(), emoji: d.emoji, ingredients: d.ingredients.filter((i) => i.name.trim()) }
     if (d.id) await db.recipes.update(d.id, data)
     else await db.recipes.add({ ...data, id: newId(), createdAt: Date.now() } as Recipe)
+    await rememberProducts(data.ingredients, false)
     onClose()
   }
 

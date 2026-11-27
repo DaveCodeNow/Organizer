@@ -1,7 +1,7 @@
 import { useState, type FormEvent } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { Download, Pencil, Plus } from 'lucide-react'
-import { addToList, db, type Ingredient, type Template, newId } from '../../lib/db'
+import { addToList, db, rememberProducts, type Ingredient, type Template, newId } from '../../lib/db'
 import { Button, Field, IconButton, Sheet, inputClass } from '../../components/ui'
 import { confirmDialog } from '../../components/Confirm'
 import { IngredientEditor } from '../../components/IngredientEditor'
@@ -68,6 +68,7 @@ function TemplateEditor({ draft, onClose }: { draft: Draft; onClose: () => void 
     const data = { name: d.name.trim(), items: d.items.filter((i) => i.name.trim()) }
     if (d.id) await db.templates.update(d.id, data)
     else await db.templates.add({ ...data, id: newId(), createdAt: Date.now() } as Template)
+    await rememberProducts(data.items, false)
     onClose()
   }
 
