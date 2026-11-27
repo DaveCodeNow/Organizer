@@ -5,7 +5,7 @@ Persönliche Haushalts- und Produktivitäts-PWA, primär fürs Handy. Aktuell ei
 Module (Tabs):
 - **Übersicht** (`features/overview`) – Fixkosten pro Monat, Strom-/Gas-/Internetvertrag mit Kündigungsfrist-Warnung, weitere Fixkosten, Kurzinfos aus den anderen Modulen
 - **Einkauf** (`features/shopping`) – Einkaufsliste; Rezepte und gespeicherte Listen werden über Buttons im Header als Bottom Sheets verwaltet
-- **Ziele & To-dos** (`features/goals`) – To-dos mit Zeithorizont (Heute/Woche/Monat/Jahr/Datum), Ziele mit Unterzielen; je höchstens eine frei anlegbare Kategorie mit Symbol (`goals/categories.tsx`, Tabelle `goalCategories`, verwaltet in `CategoryManager.tsx`) und gemeinsamem Kategorie-Filter. Ziele werden nach Kategorie gruppiert; Symbole gibt es nur an Kategorien, nicht an Zielen. (Tags/`tagMeta` sind veraltet, in DB v5 migriert.)
+- **Ziele & To-dos** (`features/goals`) – To-dos mit Zeithorizont (Heute/Woche/Monat/Jahr/Datum), Ziele mit Unterzielen, Habits (täglich oder x-mal pro Woche, Wochenleiste Mo–So, Serien); je höchstens eine frei anlegbare Kategorie mit Symbol (`goals/categories.tsx`, Tabelle `goalCategories`, verwaltet in `CategoryManager.tsx`) und gemeinsamem Kategorie-Filter. Ziele werden nach Kategorie gruppiert; Symbole gibt es nur an Kategorien, nicht an Zielen. (Tags/`tagMeta` sind veraltet, in DB v5 migriert.)
 
 UI-Texte sind auf Deutsch.
 
@@ -33,4 +33,5 @@ UI-Texte sind auf Deutsch.
 - Akzentfarbe Grün (`brand`, `brand-soft`, `brand-ink`) – keine neuen Farben ohne Token
 - Mobile first: max. Breite `max-w-lg`, Bottom-Tab-Bar, Bottom Sheets statt Modals, Safe-Area-Insets beachten
 - Touch-Ziele mindestens 40px
+- Keine Browser-Dialoge (`confirm`, `alert`, `prompt`) – die werden in eingebetteten Vorschauen unterdrückt. Rückfragen über `confirmDialog()` aus `src/components/Confirm.tsx`.
 - Tailwind-Falle: Klassen, die dieselbe Eigenschaft setzen (z. B. `w-24` zu `inputClass` mit `w-full`, `h-10` zu `Button` mit `h-11`), überschreiben sich nicht nach Reihenfolge im className, sondern nach Reihenfolge im CSS. Stattdessen Wrapper nutzen oder `fieldClass` als Basis nehmen.

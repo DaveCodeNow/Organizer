@@ -3,6 +3,7 @@ import { useLiveQuery } from 'dexie-react-hooks'
 import { Download, Pencil, Plus } from 'lucide-react'
 import { addToList, db, type Ingredient, type Template } from '../../lib/db'
 import { Button, Field, IconButton, Sheet, inputClass } from '../../components/ui'
+import { confirmDialog } from '../../components/Confirm'
 import { IngredientEditor } from '../../components/IngredientEditor'
 import { toast } from '../../components/Toast'
 
@@ -71,7 +72,7 @@ function TemplateEditor({ draft, onClose }: { draft: Draft; onClose: () => void 
   }
 
   const remove = async () => {
-    if (d.id && confirm(`Liste „${d.name}“ löschen?`)) {
+    if (d.id && await confirmDialog(`Liste „${d.name}“ löschen?`)) {
       await db.templates.delete(d.id)
       onClose()
     }

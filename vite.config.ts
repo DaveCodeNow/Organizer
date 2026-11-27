@@ -4,6 +4,11 @@ import tailwindcss from '@tailwindcss/vite'
 import { VitePWA } from 'vite-plugin-pwa'
 
 export default defineConfig({
+  // Unter Windows hat die normale Dateiüberwachung schnell aufeinanderfolgende Änderungen verpasst
+  // (Dev-Server lieferte veraltete Module aus). Polling ist etwas teurer, aber zuverlässig.
+  server: {
+    watch: { usePolling: true, interval: 200 },
+  },
   plugins: [
     react(),
     tailwindcss(),

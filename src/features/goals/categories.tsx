@@ -10,7 +10,7 @@ import { inputClass } from '../../components/ui'
 export const EMOJIS = ['🎯', '🎓', '🎵', '💼', '💻', '🧪', '📚', '🏡', '💰', '🏃', '🧘', '❤️', '🌱', '✈️', '🎨', '🛠️', '🚗', '🍳', '🐾', '⭐']
 
 export interface CategoryInfo extends GoalCategory {
-  /** Wie viele Ziele und To-dos zur Kategorie gehören */
+  /** Wie viele Ziele, To-dos und Habits zur Kategorie gehören */
   count: number
 }
 
@@ -26,9 +26,9 @@ export const categoryLabel = (c: Pick<GoalCategory, 'name' | 'emoji'>) => (c.emo
 export function useCategoriesQuery() {
   return useLiveQuery(
     async () => {
-      const [cats, goals, todos] = await Promise.all([db.goalCategories.toArray(), db.goals.toArray(), db.todos.toArray()])
+      const [cats, goals, todos, habits] = await Promise.all([db.goalCategories.toArray(), db.goals.toArray(), db.todos.toArray(), db.habits.toArray()])
       const count = new Map<string, number>()
-      for (const x of [...goals, ...todos]) if (x.category) count.set(x.category, (count.get(x.category) ?? 0) + 1)
+      for (const x of [...goals, ...todos, ...habits]) if (x.category) count.set(x.category, (count.get(x.category) ?? 0) + 1)
       return cats.map((c) => ({ ...c, count: count.get(c.id) ?? 0 })).sort((a, b) => a.name.localeCompare(b.name, 'de'))
     },
     [],
@@ -62,11 +62,12 @@ export async function updateCategory(id: string, patch: { name?: string; emoji?:
   await db.goalCategories.update(id, { ...patch, ...(name !== undefined && { name }) })
 }
 
-/** Löscht die Kategorie; Ziele und To-dos bleiben erhalten und sind danach ohne Kategorie. */
+/** Löscht die Kategorie; Ziele, To-dos und Habits bleiben erhalten und sind danach ohne Kategorie. */
 export async function deleteCategory(id: string) {
-  await db.transaction('rw', db.goals, db.todos, db.goalCategories, async () => {
+  await db.transaction('rw', [db.goals, db.todos, db.habits, db.goalCategories], async () => {
     await db.goals.where('category').equals(id).modify((g) => void delete g.category)
     await db.todos.where('category').equals(id).modify((t) => void delete t.category)
+    await db.habits.where('category').equals(id).modify((h) => void delete h.category)
     await db.goalCategories.delete(id)
   })
 }

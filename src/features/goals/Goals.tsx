@@ -4,6 +4,7 @@ import { Check, Pencil, Plus, X } from 'lucide-react'
 import { db, uid, type Goal, type SubGoal } from '../../lib/db'
 import { formatDate } from '../../lib/dates'
 import { Button, CheckCircle, EmptyState, Field, IconButton, SectionTitle, Sheet, fieldClass, inputClass } from '../../components/ui'
+import { confirmDialog } from '../../components/Confirm'
 import { toast } from '../../components/Toast'
 import { CategoryPicker, categoryLabel, findCategory, useCategories } from './categories'
 
@@ -230,7 +231,7 @@ function GoalEditor({ draft, onClose }: { draft: Draft; onClose: () => void }) {
   }
 
   const remove = async () => {
-    if (d.id && confirm(`Ziel „${d.title}“ löschen?`)) {
+    if (d.id && await confirmDialog(`Ziel „${d.title}“ löschen?`)) {
       await db.goals.delete(d.id)
       onClose()
     }

@@ -3,6 +3,7 @@ import { useLiveQuery } from 'dexie-react-hooks'
 import { Pencil, Plus, ShoppingCart } from 'lucide-react'
 import { addToList, db, type Ingredient, type Recipe } from '../../lib/db'
 import { Button, Field, IconButton, Sheet, inputClass } from '../../components/ui'
+import { confirmDialog } from '../../components/Confirm'
 import { IngredientEditor } from '../../components/IngredientEditor'
 import { toast } from '../../components/Toast'
 
@@ -72,7 +73,7 @@ function RecipeEditor({ draft, onClose }: { draft: Draft; onClose: () => void })
   }
 
   const remove = async () => {
-    if (d.id && confirm(`Rezept „${d.name}“ löschen?`)) {
+    if (d.id && await confirmDialog(`Rezept „${d.name}“ löschen?`)) {
       await db.recipes.delete(d.id)
       onClose()
     }

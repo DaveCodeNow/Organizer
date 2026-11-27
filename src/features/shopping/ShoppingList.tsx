@@ -6,6 +6,7 @@ import { CATEGORIES } from '../../lib/categories'
 import { parseEntry } from '../../lib/parse'
 import { Button, CheckCircle, EmptyState, IconButton, PageHeader, Sheet, inputClass } from '../../components/ui'
 import { toast } from '../../components/Toast'
+import { confirmDialog } from '../../components/Confirm'
 import { RecipesSheet } from './RecipesSheet'
 import { TemplatesSheet } from './TemplatesSheet'
 
@@ -179,9 +180,9 @@ export default function ShoppingList() {
             label="Liste komplett leeren"
             danger
             disabled={total === 0}
-            onClick={() => {
-              if (confirm('Wirklich alle Einträge löschen?')) clearList()
+            onClick={async () => {
               setMenuOpen(false)
+              if (await confirmDialog('Wirklich alle Einträge der Einkaufsliste löschen?', 'Leeren')) clearList()
             }}
           />
         </div>

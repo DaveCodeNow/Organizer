@@ -11,6 +11,22 @@ export function fromISO(iso: string) {
 
 export const today = () => toISO(new Date())
 
+export function addDays(iso: string, n: number) {
+  const d = fromISO(iso)
+  d.setDate(d.getDate() + n)
+  return toISO(d)
+}
+
+/** Montag der Woche, in der das Datum liegt. */
+export function startOfWeek(iso = today()) {
+  const d = fromISO(iso)
+  d.setDate(d.getDate() - ((d.getDay() + 6) % 7))
+  return toISO(d)
+}
+
+/** Die sieben Tage (Mo–So) der aktuellen Woche. */
+export const weekDays = () => Array.from({ length: 7 }, (_, i) => addDays(startOfWeek(), i))
+
 /** Sonntag der aktuellen Woche (Woche = Mo–So). */
 export function endOfWeek(d = new Date()) {
   const x = new Date(d)

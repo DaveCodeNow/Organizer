@@ -6,10 +6,17 @@ import { today } from '../../lib/dates'
 import { Chips, IconButton, PageHeader, Segmented } from '../../components/ui'
 import { Todos } from './Todos'
 import { Goals } from './Goals'
+import { Habits } from './Habits'
 import { CategoryManager } from './CategoryManager'
 import { CategoriesContext, categoryLabel, useCategoriesQuery } from './categories'
 
-type View = 'todos' | 'goals'
+const VIEWS = [
+  { id: 'todos', label: 'To-dos' },
+  { id: 'goals', label: 'Ziele' },
+  { id: 'habits', label: 'Habits' },
+] as const
+type View = (typeof VIEWS)[number]['id']
+const isView = (v: unknown): v is View => VIEWS.some((x) => x.id === v)
 
 function read(key: string) {
   try {
@@ -26,7 +33,10 @@ function write(key: string, value: string | null) {
 }
 
 export default function GoalsTodos() {
-  const [view, setView] = useState<View>(() => (read('goalsView') === 'goals' ? 'goals' : 'todos'))
+  const [view, setView] = useState<View>(() => {
+    const v = read('goalsView')
+    return isView(v) ? v : 'todos'
+  })
   const [filter, setFilter] = useState<string | null>(() => read('goalsCategory'))
   const [managing, setManaging] = useState(false)
   const cats = useCategoriesQuery()
@@ -63,19 +73,14 @@ export default function GoalsTodos() {
         }
       />
       <div className="space-y-3 px-5 pb-2">
-        <Segmented
-          value={view}
-          options={[
-            { id: 'todos', label: 'To-dos' },
-            { id: 'goals', label: 'Ziele' },
-          ]}
-          onChange={changeView}
-        />
+        <Segmented value={view} options={VIEWS} onChange={changeView} />
         {cats.length > 0 && (
           <Chips value={category ?? ''} options={[{ id: '', label: 'Alle' }, ...cats.map((c) => ({ id: c.id, label: categoryLabel(c) }))]} onChange={changeCategory} />
         )}
       </div>
-      {view === 'todos' ? <Todos category={category} /> : <Goals category={category} />}
+      {view === 'todos' && <Todos category={category} />}
+      {view === 'goals' && <Goals category={category} />}
+      {view === 'habits' && <Habits category={category} />}
       {managing && <CategoryManager onClose={() => setManaging(false)} />}
     </CategoriesContext.Provider>
   )

@@ -5,6 +5,7 @@ import { db } from './lib/db'
 import { today } from './lib/dates'
 import { onNavigate } from './lib/nav'
 import { Toaster } from './components/Toast'
+import { Confirmer } from './components/Confirm'
 import Overview from './features/overview/Overview'
 import ShoppingList from './features/shopping/ShoppingList'
 import GoalsTodos from './features/goals/GoalsTodos'
@@ -82,6 +83,7 @@ export default function App() {
         </div>
       </nav>
       <Toaster />
+      <Confirmer />
     </div>
   )
 }

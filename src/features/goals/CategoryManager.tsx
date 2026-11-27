@@ -1,6 +1,7 @@
 import { useState, type FormEvent } from 'react'
 import { Plus, Trash2 } from 'lucide-react'
 import { IconButton, Sheet, inputClass } from '../../components/ui'
+import { confirmDialog } from '../../components/Confirm'
 import { EmojiGrid, createCategory, deleteCategory, updateCategory, useCategories, type CategoryInfo } from './categories'
 
 /** Kategorien anlegen, Symbol zuordnen, umbenennen, löschen. */
@@ -21,7 +22,7 @@ export function CategoryManager({ onClose }: { onClose: () => void }) {
   return (
     <Sheet open onClose={onClose} title="Kategorien">
       <div className="space-y-5 pt-1 pb-2">
-        <p className="text-sm text-muted">Ordne deine Ziele und To-dos Kategorien zu, z. B. „🎓 Masterprojekt“ oder „🎵 Musik“. Die Ziele werden danach gruppiert.</p>
+        <p className="text-sm text-muted">Ordne deine To-dos, Ziele und Habits Kategorien zu, z. B. „🎓 Masterprojekt“ oder „🎵 Musik“. Die Ziele werden danach gruppiert.</p>
 
         {cats.length > 0 && (
           <ul className="space-y-2">
@@ -78,9 +79,9 @@ function CategoryRow({ cat, picking, onTogglePick, onPicked }: { cat: CategoryIn
 
   const remove = async () => {
     const msg = cat.count
-      ? `Kategorie „${cat.name}“ löschen? ${cat.count} ${cat.count === 1 ? 'Eintrag ist' : 'Einträge sind'} danach ohne Kategorie – die Ziele und To-dos selbst bleiben erhalten.`
+      ? `Kategorie „${cat.name}“ löschen? ${cat.count} ${cat.count === 1 ? 'Eintrag ist' : 'Einträge sind'} danach ohne Kategorie – die Einträge selbst bleiben erhalten.`
       : `Kategorie „${cat.name}“ löschen?`
-    if (confirm(msg)) await deleteCategory(cat.id)
+    if (await confirmDialog(msg)) await deleteCategory(cat.id)
   }
 
   return (
@@ -102,7 +103,7 @@ function CategoryRow({ cat, picking, onTogglePick, onPicked }: { cat: CategoryIn
           aria-label="Name der Kategorie"
           className={`${inputClass} min-w-0 flex-1`}
         />
-        <span className="w-8 shrink-0 text-center text-xs text-muted" title="Anzahl Ziele und To-dos">
+        <span className="w-8 shrink-0 text-center text-xs text-muted" title="Anzahl To-dos, Ziele und Habits">
           {cat.count}×
         </span>
         <IconButton label={`${cat.name} löschen`} tone="danger" onClick={remove}>

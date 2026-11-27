@@ -70,7 +70,23 @@ export interface Todo {
   createdAt: number
 }
 
-/** Frei angelegte Kategorie für Ziele und To-dos, z. B. „🎓 Masterprojekt“. */
+export type HabitFrequency = 'daily' | 'weekly'
+
+/** Gewohnheit, die täglich oder x-mal pro Woche abgehakt wird. */
+export interface Habit {
+  id: number
+  title: string
+  frequency: HabitFrequency
+  /** Nur bei weekly: Ziel pro Woche (1–7) */
+  perWeek?: number
+  /** ID einer GoalCategory */
+  category?: string
+  /** Abgehakte Tage als YYYY-MM-DD, aufsteigend sortiert */
+  log: string[]
+  createdAt: number
+}
+
+/** Frei angelegte Kategorie für Ziele, To-dos und Habits, z. B. „🎓 Masterprojekt“. */
 export interface GoalCategory {
   id: string
   name: string
@@ -118,6 +134,7 @@ export const db = new Dexie('haushalt') as Dexie & {
   goals: EntityTable<Goal, 'id'>
   tagMeta: EntityTable<TagMeta, 'key'>
   goalCategories: EntityTable<GoalCategory, 'id'>
+  habits: EntityTable<Habit, 'id'>
 }
 
 db.version(1).stores({
@@ -172,6 +189,10 @@ db.version(5)
     await tx.table('todos').toCollection().modify(migrate)
     await tx.table('goalCategories').bulkAdd([...byKey.values()])
   })
+
+db.version(6).stores({
+  habits: '++id, category',
+})
 
 /** Kurze, eindeutige ID für eingebettete Objekte (crypto.randomUUID fehlt bei http im WLAN). */
 export const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 8)

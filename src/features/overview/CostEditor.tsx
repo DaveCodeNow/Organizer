@@ -1,6 +1,7 @@
 import { useState, type FormEvent } from 'react'
 import { db, type CostKind, type FixedCost, type Interval, type Notice } from '../../lib/db'
 import { Button, Field, Segmented, Sheet, fieldClass, inputClass } from '../../components/ui'
+import { confirmDialog } from '../../components/Confirm'
 import { CONTRACTS, INTERVALS, NOTICES, euro, parseAmount, perMonth } from './costs'
 
 type Draft = {
@@ -67,7 +68,7 @@ export function CostEditor({ draft, onClose }: { draft: Draft; onClose: () => vo
   }
 
   const remove = async () => {
-    if (d.id && confirm(`„${name}“ löschen?`)) {
+    if (d.id && await confirmDialog(`„${name}“ löschen?`)) {
       await db.fixedCosts.delete(d.id)
       onClose()
     }
