@@ -95,7 +95,7 @@ export interface TagMeta {
 export interface Goal {
   id: number
   title: string
-  /** Symbol des Ziels (bei sehr alten Datensätzen evtl. leer → Symbol der Kategorie) */
+  /** Veraltet: Ziele haben kein Symbol mehr, Symbole gehören zu Kategorien. Wird nicht mehr angezeigt. */
   emoji?: string
   /** ID einer GoalCategory */
   category?: string

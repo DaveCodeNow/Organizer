@@ -6,7 +6,7 @@ import { inputClass } from '../../components/ui'
 
 /** Kategorien für Ziele und To-dos (nicht zu verwechseln mit den Supermarkt-Kategorien in lib/categories.ts). */
 
-/** Symbole zur Auswahl – für Kategorien und für Ziele. */
+/** Symbole zur Auswahl für Kategorien (Ziele selbst haben kein Symbol). */
 export const EMOJIS = ['🎯', '🎓', '🎵', '💼', '💻', '🧪', '📚', '🏡', '💰', '🏃', '🧘', '❤️', '🌱', '✈️', '🎨', '🛠️', '🚗', '🍳', '🐾', '⭐']
 
 export interface CategoryInfo extends GoalCategory {

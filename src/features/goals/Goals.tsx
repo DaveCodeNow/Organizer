@@ -5,16 +5,12 @@ import { db, uid, type Goal, type SubGoal } from '../../lib/db'
 import { formatDate } from '../../lib/dates'
 import { Button, CheckCircle, EmptyState, Field, IconButton, SectionTitle, Sheet, fieldClass, inputClass } from '../../components/ui'
 import { toast } from '../../components/Toast'
-import { CategoryPicker, EmojiGrid, EMOJIS, categoryLabel, findCategory, useCategories, type CategoryInfo } from './categories'
+import { CategoryPicker, categoryLabel, findCategory, useCategories } from './categories'
 
-const DEFAULT_EMOJI = EMOJIS[0]
-
-type Draft = { id?: number; title: string; emoji: string; category?: string; note: string; targetDate: string; subgoals: SubGoal[]; done: boolean }
+// Ziele haben kein eigenes Symbol – Symbole gehören zu den Kategorien (sichtbar in den Gruppen-Überschriften).
+type Draft = { id?: number; title: string; category?: string; note: string; targetDate: string; subgoals: SubGoal[]; done: boolean }
 
 const progress = (g: Pick<Goal, 'subgoals'>) => (g.subgoals.length ? g.subgoals.filter((s) => s.done).length / g.subgoals.length : 0)
-
-/** Symbol eines Ziels: eigenes, sonst das der Kategorie (alte Datensätze), sonst 🎯. */
-const goalEmoji = (g: Goal, cats: CategoryInfo[]) => g.emoji ?? findCategory(cats, g.category)?.emoji ?? DEFAULT_EMOJI
 
 export function Goals({ category }: { category: string | null }) {
   const all = useLiveQuery(() => db.goals.toArray(), [])
@@ -26,14 +22,21 @@ export function Goals({ category }: { category: string | null }) {
   const current = findCategory(cats, category ?? undefined)
   const blank = (): Draft => ({
     title: '',
-    emoji: current?.emoji ?? DEFAULT_EMOJI,
     category: current?.id,
     note: '',
     targetDate: '',
     subgoals: [],
     done: false,
   })
-  const toDraft = (g: Goal): Draft => ({ ...g, emoji: goalEmoji(g, cats), note: g.note ?? '', targetDate: g.targetDate ?? '' })
+  const toDraft = (g: Goal): Draft => ({
+    id: g.id,
+    title: g.title,
+    category: g.category,
+    note: g.note ?? '',
+    targetDate: g.targetDate ?? '',
+    subgoals: g.subgoals,
+    done: g.done,
+  })
 
   const goals = all.filter((g) => !category || g.category === category)
   const active = goals.filter((g) => !g.done).sort((a, b) => (a.targetDate ?? '9999').localeCompare(b.targetDate ?? '9999') || a.createdAt - b.createdAt)
@@ -75,7 +78,7 @@ export function Goals({ category }: { category: string | null }) {
             )}
             <div className="space-y-3">
               {group.items.map((g) => (
-                <GoalCard key={g.id} goal={g} emoji={goalEmoji(g, cats)} onEdit={() => setEditing(toDraft(g))} />
+                <GoalCard key={g.id} goal={g} onEdit={() => setEditing(toDraft(g))} />
               ))}
             </div>
           </section>
@@ -88,7 +91,6 @@ export function Goals({ category }: { category: string | null }) {
               {reached.map((g) => (
                 <li key={g.id} className="border-b border-line/70 last:border-0">
                   <button type="button" onClick={() => setEditing(toDraft(g))} className="flex min-h-14 w-full items-center gap-3 px-4 text-left">
-                    <span className="text-xl">{goalEmoji(g, cats)}</span>
                     <span className="flex-1 text-muted line-through">{g.title}</span>
                     <span className="text-sm">🏆</span>
                   </button>
@@ -104,7 +106,7 @@ export function Goals({ category }: { category: string | null }) {
   )
 }
 
-function GoalCard({ goal, emoji, onEdit }: { goal: Goal; emoji: string; onEdit: () => void }) {
+function GoalCard({ goal, onEdit }: { goal: Goal; onEdit: () => void }) {
   const [adding, setAdding] = useState(false)
   const [text, setText] = useState('')
   const doneCount = goal.subgoals.filter((s) => s.done).length
@@ -134,8 +136,7 @@ function GoalCard({ goal, emoji, onEdit }: { goal: Goal; emoji: string; onEdit: 
   return (
     <article className="rounded-3xl bg-surface p-4 shadow-card">
       <div className="flex items-start gap-3">
-        <div className="grid size-12 shrink-0 place-items-center rounded-2xl bg-bg text-2xl">{emoji}</div>
-        <div className="min-w-0 flex-1 pt-0.5">
+        <div className="min-w-0 flex-1 pt-1.5 pl-1">
           <h3 className="text-[17px] leading-snug font-semibold">{goal.title}</h3>
           <p className="text-sm text-muted">{meta}</p>
         </div>
@@ -204,13 +205,7 @@ function GoalCard({ goal, emoji, onEdit }: { goal: Goal; emoji: string; onEdit: 
 function GoalEditor({ draft, onClose }: { draft: Draft; onClose: () => void }) {
   const [d, setD] = useState(draft)
   const [sub, setSub] = useState('')
-  // Solange das Symbol nicht selbst gewählt wurde, übernimmt ein neues Ziel das Symbol der gewählten Kategorie.
-  const [emojiTouched, setEmojiTouched] = useState(!!draft.id)
   const set = (patch: Partial<Draft>) => setD({ ...d, ...patch })
-
-  const setCategory = (category: string | undefined, catEmoji?: string) => {
-    set({ category, ...(!emojiTouched && { emoji: catEmoji ?? DEFAULT_EMOJI }) })
-  }
 
   const addSub = () => {
     if (!sub.trim()) return
@@ -223,7 +218,6 @@ function GoalEditor({ draft, onClose }: { draft: Draft; onClose: () => void }) {
     if (!d.title.trim()) return
     const data = {
       title: d.title.trim(),
-      emoji: d.emoji,
       category: d.category,
       note: d.note.trim() || undefined,
       targetDate: d.targetDate || undefined,
@@ -251,18 +245,7 @@ function GoalEditor({ draft, onClose }: { draft: Draft; onClose: () => void }) {
 
         <div>
           <span className="mb-1.5 block text-sm font-semibold">Kategorie</span>
-          <CategoryPicker value={d.category} onChange={setCategory} />
-        </div>
-
-        <div>
-          <span className="mb-1.5 block text-sm font-semibold">Symbol</span>
-          <EmojiGrid
-            value={d.emoji}
-            onPick={(emoji) => {
-              setEmojiTouched(true)
-              set({ emoji: emoji ?? DEFAULT_EMOJI })
-            }}
-          />
+          <CategoryPicker value={d.category} onChange={(category) => set({ category })} />
         </div>
 
         <div>
