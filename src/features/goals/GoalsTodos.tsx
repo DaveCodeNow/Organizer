@@ -1,11 +1,13 @@
 import { useState } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
+import { Shapes } from 'lucide-react'
 import { db } from '../../lib/db'
 import { today } from '../../lib/dates'
-import { Chips, PageHeader, Segmented } from '../../components/ui'
+import { Chips, IconButton, PageHeader, Segmented } from '../../components/ui'
 import { Todos } from './Todos'
 import { Goals } from './Goals'
-import { useAllTags } from './tags'
+import { CategoryManager } from './CategoryManager'
+import { CategoriesContext, categoryLabel, useCategoriesQuery } from './categories'
 
 type View = 'todos' | 'goals'
 
@@ -25,10 +27,11 @@ function write(key: string, value: string | null) {
 
 export default function GoalsTodos() {
   const [view, setView] = useState<View>(() => (read('goalsView') === 'goals' ? 'goals' : 'todos'))
-  const [filter, setFilter] = useState<string | null>(() => read('goalsTag'))
-  const tags = useAllTags()
-  // Gibt es den gemerkten Tag nicht mehr (alle Einträge gelöscht), gilt wieder „Alle“.
-  const tag = filter && tags.some((t) => t.toLowerCase() === filter.toLowerCase()) ? filter : null
+  const [filter, setFilter] = useState<string | null>(() => read('goalsCategory'))
+  const [managing, setManaging] = useState(false)
+  const cats = useCategoriesQuery()
+  // Gibt es die gemerkte Kategorie nicht mehr, gilt wieder „Alle“.
+  const category = filter && cats.some((c) => c.id === filter) ? filter : null
 
   const t = today()
   const subtitle = useLiveQuery(async () => {
@@ -42,15 +45,23 @@ export default function GoalsTodos() {
     setView(v)
     write('goalsView', v)
   }
-  const changeTag = (v: string) => {
-    const next = v || null
+  const changeCategory = (id: string) => {
+    const next = id || null
     setFilter(next)
-    write('goalsTag', next)
+    write('goalsCategory', next)
   }
 
   return (
-    <>
-      <PageHeader title="Ziele & To-dos" subtitle={subtitle} />
+    <CategoriesContext.Provider value={cats}>
+      <PageHeader
+        title="Ziele & To-dos"
+        subtitle={subtitle}
+        action={
+          <IconButton label="Kategorien verwalten" onClick={() => setManaging(true)}>
+            <Shapes size={19} />
+          </IconButton>
+        }
+      />
       <div className="space-y-3 px-5 pb-2">
         <Segmented
           value={view}
@@ -60,11 +71,12 @@ export default function GoalsTodos() {
           ]}
           onChange={changeView}
         />
-        {tags.length > 0 && (
-          <Chips value={tag ?? ''} options={[{ id: '', label: 'Alle' }, ...tags.map((x) => ({ id: x, label: `#${x}` }))]} onChange={changeTag} />
+        {cats.length > 0 && (
+          <Chips value={category ?? ''} options={[{ id: '', label: 'Alle' }, ...cats.map((c) => ({ id: c.id, label: categoryLabel(c) }))]} onChange={changeCategory} />
         )}
       </div>
-      {view === 'todos' ? <Todos tag={tag} /> : <Goals tag={tag} />}
-    </>
+      {view === 'todos' ? <Todos category={category} /> : <Goals category={category} />}
+      {managing && <CategoryManager onClose={() => setManaging(false)} />}
+    </CategoriesContext.Provider>
   )
 }

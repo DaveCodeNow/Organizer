@@ -63,8 +63,18 @@ export interface Todo {
   due?: string
   done: boolean
   doneAt?: number
-  /** Freie Tags zum Kategorisieren, z. B. „Masterprojekt“ */
+  /** ID einer GoalCategory */
+  category?: string
+  /** Veraltet (bis DB v4), in v5 zu `category` migriert */
   tags?: string[]
+  createdAt: number
+}
+
+/** Frei angelegte Kategorie für Ziele und To-dos, z. B. „🎓 Masterprojekt“. */
+export interface GoalCategory {
+  id: string
+  name: string
+  emoji?: string
   createdAt: number
 }
 
@@ -74,15 +84,27 @@ export interface SubGoal {
   done: boolean
 }
 
+/** Veraltet (DB v4): Symbol je Tag. In v5 zu GoalCategory migriert. */
+export interface TagMeta {
+  /** Tag-Name in Kleinbuchstaben (Tags sind unabhängig von Groß-/Kleinschreibung) */
+  key: string
+  name: string
+  emoji?: string
+}
+
 export interface Goal {
   id: number
   title: string
-  emoji: string
+  /** Symbol des Ziels (bei sehr alten Datensätzen evtl. leer → Symbol der Kategorie) */
+  emoji?: string
+  /** ID einer GoalCategory */
+  category?: string
   note?: string
   /** YYYY-MM-DD, optional */
   targetDate?: string
   subgoals: SubGoal[]
   done: boolean
+  /** Veraltet (bis DB v4), in v5 zu `category` migriert */
   tags?: string[]
   createdAt: number
 }
@@ -94,6 +116,8 @@ export const db = new Dexie('haushalt') as Dexie & {
   fixedCosts: EntityTable<FixedCost, 'id'>
   todos: EntityTable<Todo, 'id'>
   goals: EntityTable<Goal, 'id'>
+  tagMeta: EntityTable<TagMeta, 'key'>
+  goalCategories: EntityTable<GoalCategory, 'id'>
 }
 
 db.version(1).stores({
@@ -114,6 +138,40 @@ db.version(3).stores({
   todos: '++id, due, *tags',
   goals: '++id, *tags',
 })
+
+db.version(4).stores({
+  tagMeta: 'key',
+})
+
+// Tags → Kategorien: je Eintrag höchstens eine Kategorie (der erste Tag), Symbole aus tagMeta werden übernommen.
+db.version(5)
+  .stores({
+    goalCategories: 'id',
+    todos: '++id, due, category',
+    goals: '++id, category',
+  })
+  .upgrade(async (tx) => {
+    const meta = (await tx.table('tagMeta').toArray()) as TagMeta[]
+    const byKey = new Map<string, GoalCategory>()
+    const ensure = (name: string) => {
+      const key = name.toLowerCase()
+      let c = byKey.get(key)
+      if (!c) {
+        const m = meta.find((x) => x.key === key)
+        c = { id: uid(), name: m?.name ?? name, emoji: m?.emoji, createdAt: Date.now() }
+        byKey.set(key, c)
+      }
+      return c
+    }
+    for (const m of meta) ensure(m.name)
+    const migrate = (row: { tags?: string[]; category?: string }) => {
+      if (row.tags?.length) row.category = ensure(row.tags[0]).id
+      delete row.tags
+    }
+    await tx.table('goals').toCollection().modify(migrate)
+    await tx.table('todos').toCollection().modify(migrate)
+    await tx.table('goalCategories').bulkAdd([...byKey.values()])
+  })
 
 /** Kurze, eindeutige ID für eingebettete Objekte (crypto.randomUUID fehlt bei http im WLAN). */
 export const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 8)

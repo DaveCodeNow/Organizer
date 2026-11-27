@@ -1,25 +1,27 @@
 import { useMemo, useState, type FormEvent } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
-import { ChevronDown, Hash, Plus } from 'lucide-react'
+import { ChevronDown, Plus, Shapes } from 'lucide-react'
 import { db, type Todo } from '../../lib/db'
 import { endOfWeek, formatDate, relativeDate } from '../../lib/dates'
 import { Button, CheckCircle, Chips, EmptyState, Field, SectionTitle, Sheet, inputClass } from '../../components/ui'
 import { GROUPS, GROUP_LABELS, HORIZONS, groupOf, horizonOf, type GroupId } from './horizons'
-import { TagList, TagPicker, extractTags, hasTag, mergeTags, useAllTags } from './tags'
+import { CategoryPicker, categoryLabel, createCategory, extractHashtag, findCategory, useCategories } from './categories'
 
 export const toggleTodo = (t: Todo) => db.todos.update(t.id, { done: !t.done, doneAt: t.done ? undefined : Date.now() })
 
-export function Todos({ tag }: { tag: string | null }) {
+export function Todos({ category }: { category: string | null }) {
   const all = useLiveQuery(() => db.todos.toArray(), [])
-  const todos = useMemo(() => all?.filter((t) => hasTag(t, tag)), [all, tag])
+  const todos = useMemo(() => all?.filter((t) => !category || t.category === category), [all, category])
+  const cats = useCategories()
   const [text, setText] = useState('')
   const [due, setDue] = useState<string | undefined>(() => endOfWeek())
   const [editing, setEditing] = useState<Todo | null>(null)
   const [showDone, setShowDone] = useState(false)
-  // Tags für neue To-dos – bleiben ausgewählt, damit man mehrere To-dos fürs selbe Projekt anlegen kann.
-  const [newTags, setNewTags] = useState<string[]>([])
-  const [tagsOpen, setTagsOpen] = useState(false)
-  const allTags = useAllTags()
+  // Kategorie für neue To-dos – bleibt ausgewählt, damit man mehrere To-dos fürs selbe Projekt anlegen kann.
+  const [newCategory, setNewCategory] = useState<string | undefined>()
+  const [pickerOpen, setPickerOpen] = useState(false)
+  const current = findCategory(cats, category ?? undefined)
+  const chosen = findCategory(cats, newCategory)
 
   const { groups, done } = useMemo(() => {
     const open = (todos ?? []).filter((t) => !t.done).sort((a, b) => (a.due ?? '9999').localeCompare(b.due ?? '9999') || a.createdAt - b.createdAt)
@@ -32,20 +34,20 @@ export function Todos({ tag }: { tag: string | null }) {
 
   const submit = async (e: FormEvent) => {
     e.preventDefault()
-    // „#Masterprojekt“ im Text wird zum Tag; bei aktivem Filter kommt dessen Tag automatisch dazu.
-    const { title, tags: hashtags } = extractTags(text, allTags)
+    // Vorrang: „#Masterprojekt“ im Text (legt die Kategorie bei Bedarf an) → oben gewählte Kategorie → aktiver Filter.
+    const { title, category: hashtag } = extractHashtag(text)
     if (!title) return
-    const tags = mergeTags(tag ? [tag] : [], newTags, hashtags)
-    await db.todos.add({ title, due, done: false, tags: tags.length ? tags : undefined, createdAt: Date.now() } as Todo)
+    const cat = (hashtag && (await createCategory(hashtag))) || chosen?.id || current?.id
+    await db.todos.add({ title, due, done: false, category: cat, createdAt: Date.now() } as Todo)
     setText('')
-    setTagsOpen(false)
+    setPickerOpen(false)
   }
 
   return (
     <>
       <form onSubmit={submit} className="sticky top-0 z-30 space-y-2 bg-bg/90 px-5 py-2 backdrop-blur-lg">
         <div className="flex gap-2">
-          <input value={text} onChange={(e) => setText(e.target.value)} placeholder={tag ? `Neues To-do in #${tag}` : 'Neues To-do, z. B. Paper lesen #Master'} enterKeyHint="done" autoComplete="off" className={inputClass} />
+          <input value={text} onChange={(e) => setText(e.target.value)} placeholder={current ? `Neues To-do in ${categoryLabel(current)}` : 'Neues To-do'} enterKeyHint="done" autoComplete="off" className={inputClass} />
           <button
             type="submit"
             aria-label="To-do hinzufügen"
@@ -56,28 +58,30 @@ export function Todos({ tag }: { tag: string | null }) {
           </button>
         </div>
         <Chips value={horizonOf(due)} options={HORIZONS} onChange={(id) => setDue(HORIZONS.find((h) => h.id === id)!.due())} />
-        <div className="flex flex-wrap items-center gap-1.5">
-          <button
-            type="button"
-            onClick={() => setTagsOpen(!tagsOpen)}
-            aria-expanded={tagsOpen}
-            className="-ml-1 flex h-9 items-center gap-1 rounded-full px-2 text-sm font-semibold text-brand"
-          >
-            <Hash size={15} />
-            {tagsOpen ? 'Tags schließen' : newTags.length ? 'Tags ändern' : 'Tag hinzufügen'}
-          </button>
-          {!tagsOpen && <TagList tags={newTags} hide={tag} />}
-        </div>
-        {tagsOpen && (
-          <div className="rounded-3xl bg-surface p-3 shadow-card">
-            <TagPicker value={newTags} onChange={setNewTags} />
-          </div>
+        {/* Bei aktivem Filter ist die Kategorie klar – dann keine eigene Auswahl. */}
+        {!current && (
+          <>
+            <button
+              type="button"
+              onClick={() => setPickerOpen(!pickerOpen)}
+              aria-expanded={pickerOpen}
+              className="-ml-1 flex h-9 items-center gap-1.5 rounded-full px-2 text-sm font-semibold text-brand"
+            >
+              <Shapes size={15} />
+              {pickerOpen ? 'Fertig' : chosen ? `Kategorie: ${categoryLabel(chosen)}` : 'Kategorie wählen'}
+            </button>
+            {pickerOpen && (
+              <div className="rounded-3xl bg-surface p-3 shadow-card">
+                <CategoryPicker value={newCategory} onChange={(id) => setNewCategory(id)} />
+              </div>
+            )}
+          </>
         )}
       </form>
 
       {todos.length === 0 ? (
-        tag ? (
-          <EmptyState emoji="🏷️" title={`Keine To-dos in #${tag}`} text="To-dos, die du jetzt oben anlegst, bekommen diesen Tag automatisch." />
+        current ? (
+          <EmptyState emoji={current.emoji ?? '🗂️'} title={`Keine To-dos in ${current.name}`} text="To-dos, die du jetzt oben anlegst, landen automatisch in dieser Kategorie." />
         ) : (
           <EmptyState emoji="✅" title="Nichts zu tun?" text="Trage oben ein To-do ein und wähle, bis wann es erledigt sein soll." />
         )
@@ -98,7 +102,7 @@ export function Todos({ tag }: { tag: string | null }) {
               </SectionTitle>
               <ul className="overflow-hidden rounded-3xl bg-surface shadow-card">
                 {g.items.map((t) => (
-                  <TodoRow key={t.id} todo={t} group={g.id} hideTag={tag} onEdit={() => setEditing(t)} />
+                  <TodoRow key={t.id} todo={t} group={g.id} showCategory={!current} onEdit={() => setEditing(t)} />
                 ))}
               </ul>
             </section>
@@ -123,7 +127,7 @@ export function Todos({ tag }: { tag: string | null }) {
               {showDone && (
                 <ul className="overflow-hidden rounded-3xl bg-surface/60">
                   {done.map((t) => (
-                    <TodoRow key={t.id} todo={t} hideTag={tag} onEdit={() => setEditing(t)} />
+                    <TodoRow key={t.id} todo={t} showCategory={!current} onEdit={() => setEditing(t)} />
                   ))}
                 </ul>
               )}
@@ -137,7 +141,10 @@ export function Todos({ tag }: { tag: string | null }) {
   )
 }
 
-function TodoRow({ todo, group, hideTag, onEdit }: { todo: Todo; group?: GroupId; hideTag: string | null; onEdit: () => void }) {
+function TodoRow({ todo, group, showCategory, onEdit }: { todo: Todo; group?: GroupId; showCategory: boolean; onEdit: () => void }) {
+  const cats = useCategories()
+  // Nur das Symbol der Kategorie, dezent vor dem Titel – keine Plakette.
+  const catEmoji = showCategory ? findCategory(cats, todo.category)?.emoji : undefined
   const overdue = group === 'überfällig'
   // In der Gruppe „Heute“ ist das Datum überflüssig, sonst „bis Sonntag“ bzw. „seit 3. Nov.“
   const label = !todo.due || group === 'heute' || todo.done ? undefined : overdue ? `seit ${formatDate(todo.due)}` : `bis ${relativeDate(todo.due)}`
@@ -148,9 +155,9 @@ function TodoRow({ todo, group, hideTag, onEdit }: { todo: Todo; group?: GroupId
         <CheckCircle checked={todo.done} />
       </button>
       <button type="button" onClick={onEdit} className="flex min-h-14 min-w-0 flex-1 items-center gap-3 py-2 text-left">
-        <span className="min-w-0 flex-1">
-          <span className={`block text-[15px] ${todo.done ? 'text-muted line-through' : 'font-medium'}`}>{todo.title}</span>
-          <TagList tags={todo.tags} hide={hideTag} className="mt-1" />
+        <span className={`min-w-0 flex-1 text-[15px] ${todo.done ? 'text-muted line-through' : 'font-medium'}`}>
+          {catEmoji && <span className="mr-1.5 inline-block">{catEmoji}</span>}
+          {todo.title}
         </span>
         {label && (
           <span className={`shrink-0 rounded-full px-2.5 py-0.5 text-xs font-medium ${overdue ? 'bg-warn-soft text-warn' : 'bg-bg text-muted'}`}>{label}</span>
@@ -163,12 +170,12 @@ function TodoRow({ todo, group, hideTag, onEdit }: { todo: Todo; group?: GroupId
 function TodoEditor({ todo, onClose }: { todo: Todo; onClose: () => void }) {
   const [title, setTitle] = useState(todo.title)
   const [due, setDue] = useState(todo.due)
-  const [tags, setTags] = useState(todo.tags ?? [])
+  const [category, setCategory] = useState(todo.category)
 
   const save = async (e: FormEvent) => {
     e.preventDefault()
     if (!title.trim()) return
-    await db.todos.update(todo.id, { title: title.trim(), due, tags: tags.length ? tags : undefined })
+    await db.todos.update(todo.id, { title: title.trim(), due, category })
     onClose()
   }
 
@@ -192,8 +199,8 @@ function TodoEditor({ todo, onClose }: { todo: Todo; onClose: () => void }) {
         </div>
 
         <div>
-          <span className="mb-1.5 block text-sm font-semibold">Tags</span>
-          <TagPicker value={tags} onChange={setTags} />
+          <span className="mb-1.5 block text-sm font-semibold">Kategorie</span>
+          <CategoryPicker value={category} onChange={(id) => setCategory(id)} />
         </div>
 
         <div className="flex gap-2 pt-1">
