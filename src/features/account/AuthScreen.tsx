@@ -48,9 +48,9 @@ export default function AuthScreen() {
   return (
     <div className="mx-auto flex min-h-dvh max-w-lg flex-col justify-center px-5 pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)]">
       <div className="mb-8 text-center">
-        <img src={`${import.meta.env.BASE_URL}icon.svg`} alt="" className="mx-auto mb-6 size-16" />
-        <h1 className="font-serif text-[38px] leading-[1.1] font-normal tracking-tight">
-          Willkommen <em>zuhause</em>
+        <img src={`${import.meta.env.BASE_URL}logo.svg`} alt="" className="mx-auto mb-4 size-24" />
+        <h1 className="font-serif text-[40px] leading-[1.1] font-normal tracking-tight">
+          Home<em>Mind</em>
         </h1>
         <p className="mt-3 text-sm text-muted">Melde dich an, um deine Daten auf allen Geräten zu haben.</p>
       </div>

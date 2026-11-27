@@ -1,4 +1,4 @@
-# Haushalt-App
+# HomeMind (Haushalt-App)
 
 Persönliche Haushalts- und Produktivitäts-PWA, primär fürs Handy. Aktuell ein Nutzer, alle Daten lokal im Browser.
 

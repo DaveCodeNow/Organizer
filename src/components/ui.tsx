@@ -2,10 +2,11 @@ import { useEffect, type ReactNode } from 'react'
 import { Check, X, type LucideIcon } from 'lucide-react'
 
 /** Seitenkopf. Betonte Wörter im Titel als <em> übergeben – sie werden kursiv in der Akzentfarbe gesetzt. */
-export function PageHeader({ title, subtitle, action }: { title: ReactNode; subtitle?: string; action?: ReactNode }) {
+export function PageHeader({ title, subtitle, action, eyebrow }: { title: ReactNode; subtitle?: string; action?: ReactNode; eyebrow?: ReactNode }) {
   return (
     <header className="flex items-end justify-between gap-3 px-5 pt-[max(2rem,calc(env(safe-area-inset-top)+1rem))] pb-5">
       <div className="min-w-0">
+        {eyebrow && <div className="mb-3">{eyebrow}</div>}
         <h1 className="font-serif text-[34px] leading-[1.1] font-normal tracking-tight">{title}</h1>
         {subtitle && <p className="mt-1.5 text-sm text-muted">{subtitle}</p>}
       </div>

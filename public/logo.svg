@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="120" height="120" viewBox="0 0 120 120" fill="none" stroke-linecap="round" stroke-linejoin="round" role="img" aria-label="HomeMind Logo">
+  <!-- Glühbirne -->
+  <path d="M44 86C44 74 26 68 26 46A34 34 0 0 1 94 46C94 68 76 74 76 86Z" stroke="#3F5E4B" stroke-width="6"/>
+  <!-- Glühfaden als Haus -->
+  <path d="M50 86V60L60 50L70 60V86" stroke="#E2B07A" stroke-width="5"/>
+  <!-- Sockel -->
+  <path d="M46 96H74M50 106H70" stroke="#3F5E4B" stroke-width="6"/>
+</svg>

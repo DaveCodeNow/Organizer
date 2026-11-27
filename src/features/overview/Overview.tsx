@@ -38,7 +38,7 @@ export default function Overview() {
 
   return (
     <>
-      <PageHeader title={<>Dein <em>Zuhause</em></>} subtitle={dateLabel} action={<AccountButton />} />
+      <PageHeader eyebrow={<Brand />} title={<>Dein <em>Zuhause</em></>} subtitle={dateLabel} action={<AccountButton />} />
 
       <div className="space-y-6 px-5">
         {/* Fixkosten gesamt */}
@@ -155,6 +155,16 @@ export default function Overview() {
 
       {editing && <CostEditor draft={editing} onClose={() => setEditing(null)} />}
     </>
+  )
+}
+
+/** Logo und Name der App, dezent über dem Titel der Übersicht. */
+function Brand() {
+  return (
+    <span className="flex items-center gap-1.5 text-sm font-medium text-muted">
+      <img src={`${import.meta.env.BASE_URL}logo.svg`} alt="" className="-ml-1 size-7" />
+      HomeMind
+    </span>
   )
 }
 

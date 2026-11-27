@@ -1,7 +1,11 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
-  <rect width="512" height="512" rx="128" fill="#3f5e4b"/>
-  <g fill="none" stroke="#fffbf5" stroke-width="26" stroke-linecap="round" stroke-linejoin="round">
-    <path d="M136 236 256 140l120 96v126a26 26 0 0 1-26 26H162a26 26 0 0 1-26-26z"/>
-    <path d="M222 388v-78a34 34 0 0 1 68 0v78"/>
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024" role="img" aria-label="HomeMind App-Icon hell">
+  <rect width="1024" height="1024" rx="230" fill="#FFFBF5"/>
+  <g transform="translate(512 512) scale(6.2) translate(-60 -60)" fill="none" stroke-linecap="round" stroke-linejoin="round">
+    <!-- Glühbirne -->
+    <path d="M44 86C44 74 26 68 26 46A34 34 0 0 1 94 46C94 68 76 74 76 86Z" stroke="#3F5E4B" stroke-width="7"/>
+    <!-- Glühfaden als Haus -->
+    <path d="M50 86V60L60 50L70 60V86" stroke="#E2B07A" stroke-width="6"/>
+    <!-- Sockel -->
+    <path d="M46 96H74M50 106H70" stroke="#3F5E4B" stroke-width="7"/>
   </g>
 </svg>
