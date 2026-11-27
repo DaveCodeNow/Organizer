@@ -1,11 +1,11 @@
 import { useMemo, useState } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
-import { Check, ChevronLeft, ChevronRight, X } from 'lucide-react'
+import { Check, ChevronLeft, ChevronRight, Sparkles, X } from 'lucide-react'
 import { db, type GoalCategory, type Level } from '../../lib/db'
 import { addDays, startOfWeek } from '../../lib/dates'
 import { IconButton, Sheet } from '../../components/ui'
 import { SymbolIcon } from '../../components/icons'
-import { LEVELS, LEVEL_POINTS, levelInfo, pointsLabel, usePointsSettings, weekLabel, weekStats, weeksWithPoints } from './points'
+import { LEVELS, LEVEL_POINTS, cycleLevel, levelInfo, pointsLabel, usePointsSettings, weekLabel, weekStats, weeksWithPoints } from './points'
 
 /** Ein bis drei Pünktchen für die Stufe (Leicht ●, Mittel ●●, Wichtig ●●●). */
 export function LevelDots({ level, muted }: { level: Level; muted?: boolean }) {
@@ -19,22 +19,19 @@ export function LevelDots({ level, muted }: { level: Level; muted?: boolean }) {
   )
 }
 
-/** Stufenauswahl als Pillen mit Pünktchen. `value` undefined = keine eigene Stufe (Standard greift). */
-export function LevelPicker({ value, fallback, onChange }: { value: Level | undefined; fallback?: Level; onChange: (l: Level) => void }) {
-  const shown = value ?? fallback
+/** Stufenauswahl als Pillen mit Pünktchen, inkl. „Keine“ (= keine Punkte). */
+export function LevelPicker({ value, onChange }: { value: Level | undefined; onChange: (l: Level | undefined) => void }) {
+  const pill = (active: boolean) =>
+    `flex h-10 items-center justify-center gap-1.5 rounded-full border text-sm font-medium transition active:scale-95 ${
+      active ? 'border-brand bg-brand-soft text-brand-ink' : 'border-line bg-surface text-muted'
+    }`
   return (
-    <div className="flex gap-2" role="radiogroup">
+    <div className="flex gap-1.5" role="radiogroup">
+      <button type="button" role="radio" aria-checked={!value} onClick={() => onChange(undefined)} className={`${pill(!value)} px-3.5`}>
+        Keine
+      </button>
       {LEVELS.map((l) => (
-        <button
-          key={l.id}
-          type="button"
-          role="radio"
-          aria-checked={shown === l.id}
-          onClick={() => onChange(l.id)}
-          className={`flex h-10 flex-1 items-center justify-center gap-2 rounded-full border text-sm font-medium transition active:scale-95 ${
-            shown === l.id ? 'border-brand bg-brand-soft text-brand-ink' : 'border-line bg-surface text-muted'
-          }`}
-        >
+        <button key={l.id} type="button" role="radio" aria-checked={value === l.id} onClick={() => onChange(l.id)} className={`${pill(value === l.id)} flex-1`}>
           <LevelDots level={l.id} />
           {l.label}
         </button>
@@ -43,29 +40,41 @@ export function LevelPicker({ value, fallback, onChange }: { value: Level | unde
   )
 }
 
-/** Schmale Fortschrittsleiste für die laufende Woche. */
+/** Unauffälliger Umschalter beim Anlegen: „Punkte“ → Leicht → Mittel → Wichtig → keine. */
+export function LevelToggle({ value, onChange }: { value: Level | undefined; onChange: (l: Level | undefined) => void }) {
+  return (
+    <button
+      type="button"
+      onClick={() => onChange(cycleLevel(value))}
+      aria-label={value ? `Punkte: ${levelInfo(value).label}, antippen zum Ändern` : 'Keine Punkte, antippen für Punkte'}
+      className={`flex h-9 items-center gap-1.5 rounded-full px-2 text-sm font-semibold ${value ? 'text-brand' : 'text-muted'}`}
+    >
+      {value ? <LevelDots level={value} /> : <Sparkles size={15} />}
+      {value ? `${levelInfo(value).label} · ${LEVEL_POINTS[value]} P.` : 'Punkte'}
+    </button>
+  )
+}
+
+/** Dezente Zeile mit dem Punktestand der laufenden Woche. */
 export function WeekProgress({ points, goal, label, onClick }: { points: number; goal?: number; label: string; onClick: () => void }) {
   const reached = !!goal && points >= goal
   return (
-    <button type="button" onClick={onClick} className="block w-full rounded-3xl bg-surface px-5 py-4 text-left transition active:scale-[.99]">
-      <span className="flex items-baseline gap-2">
-        <span className="font-serif text-[26px] leading-[1.1]">{points}</span>
-        <span className="min-w-0 flex-1 truncate text-sm text-muted">
-          {goal ? `von ${goal} Punkten` : points === 1 ? 'Punkt' : 'Punkte'} · {label}
-        </span>
-        {reached ? (
-          <span className="flex items-center gap-1 text-sm font-semibold text-brand">
-            <Check size={15} strokeWidth={2.5} /> Ziel erreicht
-          </span>
-        ) : (
-          <ChevronRight size={18} className="shrink-0 self-center text-muted" />
-        )}
+    <button type="button" onClick={onClick} className="flex h-10 w-full items-center gap-2.5 text-left text-sm text-muted">
+      <Sparkles size={15} className="shrink-0 text-caramel" aria-hidden />
+      <span className="min-w-0 flex-1 truncate">
+        <span className="font-semibold text-ink">{points}</span>
+        {goal ? ` / ${goal}` : ''} {points === 1 && !goal ? 'Punkt' : 'Punkte'} {label}
       </span>
-      {!!goal && (
-        <span className="mt-3 block h-1.5 overflow-hidden rounded-full bg-line">
-          <span className="block h-full rounded-full bg-brand transition-all" style={{ width: `${Math.min(100, (points / goal) * 100)}%` }} />
-        </span>
+      {reached ? (
+        <Check size={16} strokeWidth={2.5} className="shrink-0 text-brand" aria-label="Ziel erreicht" />
+      ) : (
+        !!goal && (
+          <span className="h-1 w-14 shrink-0 overflow-hidden rounded-full bg-line" aria-hidden>
+            <span className="block h-full rounded-full bg-caramel" style={{ width: `${Math.min(100, (points / goal) * 100)}%` }} />
+          </span>
+        )
       )}
+      <ChevronRight size={16} className="shrink-0" aria-hidden />
     </button>
   )
 }
@@ -102,24 +111,18 @@ export function ReviewCard({ onOpen }: { onOpen: (week: string) => void }) {
   }
 
   return (
-    <section className="relative rounded-3xl bg-sand px-5 pt-4 pb-1.5">
-      <p className="text-xs font-medium tracking-wider text-ink/75 uppercase">Wochenrückblick · {weekLabel(last)}</p>
-      <p className="mt-1 pr-8 font-serif text-[20px] leading-[1.15] font-[600]">
-        Deine Woche: <em>{pointsLabel(stats.total)}</em>
-      </p>
-      <p className="mt-1 text-sm text-ink/80">
-        {[goal ? (stats.total >= goal ? 'Wochenziel erreicht' : `Ziel war ${goal}`) : undefined, topName && `am meisten in ${topName}`].filter(Boolean).join(' · ') ||
-          `${stats.count} To-dos erledigt`}
-      </p>
-      <button type="button" onClick={() => onOpen(last)} className="mt-0.5 -ml-1 flex h-10 items-center gap-1 px-1 text-sm font-semibold text-brand">
-        Rückblick ansehen <ChevronRight size={16} />
+    <div className="flex h-11 items-center gap-1 rounded-full bg-surface pr-0.5 pl-4 text-sm">
+      <button type="button" onClick={() => onOpen(last)} className="flex h-full min-w-0 flex-1 items-center gap-2 text-left">
+        <span className="min-w-0 flex-1 truncate text-muted">
+          Rückblick {weekLabel(last)}: <span className="font-semibold text-ink">{pointsLabel(stats.total)}</span>
+          {goal && stats.total >= goal ? ' · Ziel erreicht' : topName ? ` · vor allem ${topName}` : ''}
+        </span>
+        <ChevronRight size={16} className="shrink-0 text-muted" />
       </button>
-      <span className="absolute top-2 right-2">
-        <IconButton label="Rückblick ausblenden" onClick={dismiss}>
-          <X size={18} />
-        </IconButton>
-      </span>
-    </section>
+      <button type="button" aria-label="Rückblick ausblenden" onClick={dismiss} className="grid size-10 shrink-0 place-items-center rounded-full text-muted transition hover:bg-bg">
+        <X size={16} />
+      </button>
+    </div>
   )
 }
 

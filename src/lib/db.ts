@@ -87,7 +87,7 @@ export interface Todo {
   doneAt?: number
   /** ID einer GoalCategory */
   category?: string
-  /** Punkte-Stufe; leer = Standardstufe der Kategorie (bzw. „leicht“) */
+  /** Punkte-Stufe, beim Anlegen gewählt; leer = keine Punkte */
   level?: Level
   /** Erledigt und aus der Liste entfernt – bleibt für die Wochenrückblicke erhalten */
   archived?: boolean
@@ -120,8 +120,6 @@ export interface GoalCategory {
   id: string
   name: string
   emoji?: string
-  /** Standard-Punktestufe für neue To-dos dieser Kategorie */
-  level?: Level
   /** Punkteziel pro Woche */
   weeklyGoal?: number
   createdAt: number

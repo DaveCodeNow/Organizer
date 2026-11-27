@@ -18,12 +18,11 @@ export const LEVELS: ReadonlyArray<{ id: Level; label: string; dots: number }> =
 
 export const levelInfo = (l: Level) => LEVELS.find((x) => x.id === l)!
 export const nextLevel = (l: Level): Level => LEVELS[(LEVELS.findIndex((x) => x.id === l) + 1) % LEVELS.length].id
+/** Reihum: keine Punkte → Leicht → Mittel → Wichtig → keine Punkte */
+export const cycleLevel = (l: Level | undefined): Level | undefined => (!l ? 'leicht' : l === 'wichtig' ? undefined : nextLevel(l))
 
-/** Stufe eines To-dos: eigene Stufe → Standardstufe der Kategorie → „leicht“. */
-export const levelOf = (todo: Todo, cats: ReadonlyArray<GoalCategory>): Level =>
-  todo.level ?? cats.find((c) => c.id === todo.category)?.level ?? 'leicht'
-
-export const pointsOf = (todo: Todo, cats: ReadonlyArray<GoalCategory>) => LEVEL_POINTS[levelOf(todo, cats)]
+/** Nicht jedes To-do braucht Punkte: ohne Stufe gibt es keine. */
+export const pointsOf = (todo: Todo) => (todo.level ? LEVEL_POINTS[todo.level] : 0)
 
 const DEFAULT: PointsSettings = { id: 'points', enabled: false }
 
@@ -36,8 +35,8 @@ export async function updatePointsSettings(patch: Partial<Omit<PointsSettings, '
   await db.settings.put({ ...cur, ...patch })
 }
 
-/** Montag (YYYY-MM-DD) der Woche, in der das To-do erledigt wurde. */
-export const weekOfDone = (todo: Todo) => (todo.done && todo.doneAt ? startOfWeek(toISO(new Date(todo.doneAt))) : undefined)
+/** Montag (YYYY-MM-DD) der Woche, in der ein To-do mit Punkten erledigt wurde. */
+export const weekOfDone = (todo: Todo) => (todo.done && todo.doneAt && todo.level ? startOfWeek(toISO(new Date(todo.doneAt))) : undefined)
 
 export interface WeekStats {
   /** Montag der Woche */
@@ -58,7 +57,7 @@ export function weekStats(todos: ReadonlyArray<Todo>, cats: ReadonlyArray<GoalCa
   let count = 0
   for (const t of todos) {
     if (weekOfDone(t) !== start) continue
-    const p = pointsOf(t, cats)
+    const p = pointsOf(t)
     total += p
     count++
     const day = Math.round((fromISO(toISO(new Date(t.doneAt!))).getTime() - fromISO(start).getTime()) / 86_400_000)

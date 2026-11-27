@@ -7,8 +7,8 @@ import { endOfWeek, formatDate, relativeDate, startOfWeek, today } from '../../l
 import { Button, CheckCircle, Chips, EmptyState, Field, SectionTitle, Sheet, inputClass } from '../../components/ui'
 import { GROUPS, GROUP_LABELS, HORIZONS, groupOf, horizonOf, type GroupId } from './horizons'
 import { CategoryPicker, categoryLabel, createCategory, extractHashtag, findCategory, useCategories } from './categories'
-import { LEVEL_POINTS, levelInfo, levelOf, nextLevel, pointsLabel, pointsOf, usePointsSettings, weekStats } from './points'
-import { LevelDots, LevelPicker, ReviewCard, WeekProgress } from './PointsUI'
+import { LEVEL_POINTS, levelInfo, nextLevel, pointsLabel, usePointsSettings, weekStats } from './points'
+import { LevelDots, LevelPicker, LevelToggle, ReviewCard, WeekProgress } from './PointsUI'
 import { toast } from '../../components/Toast'
 
 export const toggleTodo = (t: Todo) => db.todos.update(t.id, { done: !t.done, doneAt: t.done ? undefined : Date.now() })
@@ -27,6 +27,8 @@ export function Todos({ category, onReport }: { category: string | null; onRepor
   // Kategorie für neue To-dos – bleibt ausgewählt, damit man mehrere To-dos fürs selbe Projekt anlegen kann.
   const [newCategory, setNewCategory] = useState<string | undefined>()
   const [pickerOpen, setPickerOpen] = useState(false)
+  // Punkte gibt es nur, wenn man sie beim Anlegen bewusst wählt.
+  const [newLevel, setNewLevel] = useState<Level | undefined>()
   const current = findCategory(cats, category ?? undefined)
   const chosen = findCategory(cats, newCategory)
 
@@ -45,8 +47,10 @@ export function Todos({ category, onReport }: { category: string | null; onRepor
     const { title, category: hashtag } = extractHashtag(text)
     if (!title) return
     const cat = (hashtag && (await createCategory(hashtag))) || chosen?.id || current?.id
-    await db.todos.add({ id: newId(), title, due, done: false, category: cat, createdAt: Date.now() } as Todo)
+    const level = points.enabled ? newLevel : undefined
+    await db.todos.add({ id: newId(), title, due, done: false, category: cat, ...(level && { level }), createdAt: Date.now() } as Todo)
     setText('')
+    setNewLevel(undefined)
     setPickerOpen(false)
   }
 
@@ -70,9 +74,10 @@ export function Todos({ category, onReport }: { category: string | null; onRepor
           onChange={(id) => setDue(HORIZONS.find((h) => h.id === id)!.due())}
           trailing={<DateChip value={due} onChange={setDue} />}
         />
-        {/* Bei aktivem Filter ist die Kategorie klar – dann keine eigene Auswahl. */}
-        {!current && (
-          <>
+        {(!current || points.enabled) && (
+          <div className="flex flex-wrap items-center gap-x-3">
+            {/* Bei aktivem Filter ist die Kategorie klar – dann keine eigene Auswahl. */}
+            {!current && (
             <button
               type="button"
               onClick={() => setPickerOpen(!pickerOpen)}
@@ -82,6 +87,12 @@ export function Todos({ category, onReport }: { category: string | null; onRepor
               <Shapes size={15} />
               {pickerOpen ? 'Fertig' : chosen ? `Kategorie: ${categoryLabel(chosen)}` : 'Kategorie wählen'}
             </button>
+            )}
+            {points.enabled && <LevelToggle value={newLevel} onChange={setNewLevel} />}
+          </div>
+        )}
+        {!current && (
+          <>
             {pickerOpen && (
               <div className="rounded-3xl bg-surface p-3">
                 <CategoryPicker value={newCategory} onChange={(id) => setNewCategory(id)} />
@@ -92,7 +103,7 @@ export function Todos({ category, onReport }: { category: string | null; onRepor
       </form>
 
       {points.enabled && week && (
-        <div className="mt-3 space-y-3 px-5">
+        <div className="mt-2 space-y-1 px-5">
           <ReviewCard onOpen={onReport} />
           {current ? (
             <WeekProgress
@@ -178,7 +189,7 @@ function TodoRow({ todo, group, showCategory, onEdit }: { todo: Todo; group?: Gr
   // Nur das Symbol der Kategorie, dezent vor dem Titel – keine Plakette.
   const catEmoji = showCategory ? findCategory(cats, todo.category)?.emoji : undefined
   const points = usePointsSettings().enabled
-  const level = levelOf(todo, cats)
+  const level = todo.level
   const overdue = group === 'überfällig'
   // In der Gruppe „Heute“ ist das Datum überflüssig, sonst „bis Sonntag“ bzw. „seit 3. Nov.“
   const label = !todo.due || group === 'heute' || todo.done ? undefined : overdue ? `seit ${formatDate(todo.due)}` : `bis ${relativeDate(todo.due)}`
@@ -190,7 +201,7 @@ function TodoRow({ todo, group, showCategory, onEdit }: { todo: Todo; group?: Gr
         aria-label={todo.done ? 'Als offen markieren' : 'Erledigt'}
         onClick={() => {
           toggleTodo(todo)
-          if (points && !todo.done) toast(`+ ${pointsLabel(pointsOf(todo, cats))}`)
+          if (points && level && !todo.done) toast(`+ ${pointsLabel(LEVEL_POINTS[level])}`)
         }}
         className="grid min-h-14 w-14 shrink-0 place-items-center"
       >
@@ -204,9 +215,9 @@ function TodoRow({ todo, group, showCategory, onEdit }: { todo: Todo; group?: Gr
         {label && (
           <span className={`shrink-0 rounded-full px-2.5 py-0.5 text-xs font-medium ${overdue ? 'bg-warn-soft text-warn' : 'bg-bg text-muted'}`}>{label}</span>
         )}
-        {points && todo.done && <span className="shrink-0 text-xs font-medium text-muted">+{LEVEL_POINTS[level]}</span>}
+        {points && level && todo.done && <span className="shrink-0 text-xs font-medium text-muted">+{LEVEL_POINTS[level]}</span>}
       </button>
-      {points && !todo.done && (
+      {points && level && !todo.done && (
         <button
           type="button"
           aria-label={`Stufe ${levelInfo(level).label} (${pointsLabel(LEVEL_POINTS[level])}) – antippen zum Ändern`}
@@ -227,13 +238,11 @@ function TodoEditor({ todo, onClose }: { todo: Todo; onClose: () => void }) {
   const [category, setCategory] = useState(todo.category)
   const [level, setLevel] = useState<Level | undefined>(todo.level)
   const points = usePointsSettings().enabled
-  const cats = useCategories()
-  const catLevel = findCategory(cats, category)?.level ?? 'leicht'
 
   const save = async (e: FormEvent) => {
     e.preventDefault()
     if (!title.trim()) return
-    await db.todos.update(todo.id, { title: title.trim(), due, category, level })
+    await db.todos.update(todo.id, { title: title.trim(), due, category, level: points ? level : todo.level })
     onClose()
   }
 
@@ -264,11 +273,8 @@ function TodoEditor({ todo, onClose }: { todo: Todo; onClose: () => void }) {
         {points && (
           <div className="space-y-2">
             <span className="block text-sm font-semibold">Stufe</span>
-            <LevelPicker value={level} fallback={catLevel} onChange={setLevel} />
-            <p className="text-xs text-muted">
-              {pointsLabel(LEVEL_POINTS[level ?? catLevel])}
-              {level ? '' : ' · Standard der Kategorie'}
-            </p>
+            <LevelPicker value={level} onChange={setLevel} />
+            <p className="text-xs text-muted">{level ? pointsLabel(LEVEL_POINTS[level]) : 'Keine Punkte für dieses To-do'}</p>
           </div>
         )}
 

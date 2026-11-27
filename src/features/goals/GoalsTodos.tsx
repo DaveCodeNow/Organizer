@@ -107,7 +107,7 @@ export default function GoalsTodos() {
             <Sparkles size={20} />
             <span className="flex-1">
               Punkte für To-dos
-              <span className="block text-xs font-normal text-muted">{LEVELS.map((l) => `${l.label} ${LEVEL_POINTS[l.id]}`).join(' · ')}</span>
+              <span className="block text-xs font-normal text-muted">Beim Anlegen wählbar: {LEVELS.map((l) => `${l.label} ${LEVEL_POINTS[l.id]}`).join(' · ')}</span>
             </span>
             <Switch on={points.enabled} />
           </button>
@@ -123,7 +123,7 @@ export default function GoalsTodos() {
               </div>
               <MenuItem
                 icon={<Shapes size={20} />}
-                label="Stufen & Ziele pro Kategorie"
+                label="Wochenziele pro Kategorie"
                 onClick={() => {
                   setMenuOpen(false)
                   setManaging(true)

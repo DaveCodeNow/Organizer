@@ -4,7 +4,6 @@ import { IconButton, Sheet, inputClass } from '../../components/ui'
 import { confirmDialog } from '../../components/Confirm'
 import { CategorySymbolGrid, SymbolButton, createCategory, deleteCategory, updateCategory, useCategories, type CategoryInfo } from './categories'
 import { usePointsSettings } from './points'
-import { LevelPicker } from './PointsUI'
 import { GoalInput } from './GoalInput'
 import { db } from '../../lib/db'
 
@@ -29,7 +28,7 @@ export function CategoryManager({ onClose }: { onClose: () => void }) {
       <div className="space-y-5 pt-1 pb-2">
         <p className="text-sm text-muted">
           Ordne deine To-dos, Ziele und Habits Kategorien zu, z. B. „Masterprojekt“ oder „Musik“, jeweils mit einem Symbol. Die Ziele werden danach gruppiert.
-          {points && ' Mit Punkten legst du hier fest, welche Stufe neue To-dos einer Kategorie bekommen und wie viele Punkte du dir pro Woche vornimmst.'}
+          {points && ' Pro Kategorie kannst du dir außerdem ein Punkteziel für die Woche setzen.'}
         </p>
 
         {cats.length > 0 && (
@@ -117,8 +116,7 @@ function CategoryRow({
         </IconButton>
       </div>
       {points && (
-        <div className="space-y-2 px-1 pt-1 pb-1">
-          <LevelPicker value={cat.level} fallback="leicht" onChange={(level) => db.goalCategories.update(cat.id, { level })} />
+        <div className="px-1 pb-1">
           <div className="flex items-center gap-3 pl-3">
             <span className="flex-1 text-sm text-muted">Wochenziel</span>
             <GoalInput value={cat.weeklyGoal} onChange={(n) => db.goalCategories.update(cat.id, { weeklyGoal: n })} label={`Wochenziel für ${cat.name}`} />
