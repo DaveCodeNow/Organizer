@@ -1,5 +1,5 @@
 import { useEffect, type ReactNode } from 'react'
-import { X } from 'lucide-react'
+import { Check, X } from 'lucide-react'
 
 export function PageHeader({ title, subtitle, action }: { title: string; subtitle?: string; action?: ReactNode }) {
   return (
@@ -119,5 +119,97 @@ export function EmptyState({ emoji, title, text, children }: { emoji: string; ti
   )
 }
 
-export const inputClass =
-  'h-11 w-full rounded-2xl border border-line bg-bg px-4 text-[15px] outline-none transition placeholder:text-muted/70 focus:border-brand focus:bg-surface focus:ring-4 focus:ring-brand/10'
+/** Grundstil für Eingabefelder ohne Höhe/Breite – für Textareas, Selects o. Ä. mit eigener Größe. */
+export const fieldClass =
+  'rounded-2xl border border-line bg-bg px-4 text-[15px] outline-none transition placeholder:text-muted/70 focus:border-brand focus:bg-surface focus:ring-4 focus:ring-brand/10'
+
+/** Standard-Eingabefeld. Achtung: setzt w-full – feste Breiten über einen Wrapper lösen, nicht per zusätzlicher w-Klasse. */
+export const inputClass = `h-11 w-full ${fieldClass}`
+
+/** Beschriftetes Formularfeld. */
+export function Field({ label, hint, children }: { label: string; hint?: ReactNode; children: ReactNode }) {
+  return (
+    <label className="block">
+      <span className="mb-1.5 block text-sm font-semibold">{label}</span>
+      {children}
+      {hint && <span className="mt-1.5 block text-xs text-muted">{hint}</span>}
+    </label>
+  )
+}
+
+/** Umschalter mit 2–4 Optionen (z. B. Monat / Quartal / Jahr). */
+export function Segmented<T extends string>({
+  value,
+  options,
+  onChange,
+}: {
+  value: T
+  options: ReadonlyArray<{ id: T; label: string }>
+  onChange: (v: T) => void
+}) {
+  return (
+    <div className="flex rounded-2xl bg-line/60 p-1">
+      {options.map((o) => (
+        <button
+          key={o.id}
+          type="button"
+          onClick={() => onChange(o.id)}
+          className={`h-9 flex-1 rounded-xl text-sm font-semibold transition ${o.id === value ? 'bg-surface text-ink shadow-card' : 'text-muted'}`}
+        >
+          {o.label}
+        </button>
+      ))}
+    </div>
+  )
+}
+
+/** Auswahl-Chips in einer horizontal scrollbaren Reihe. */
+export function Chips<T extends string>({
+  value,
+  options,
+  onChange,
+}: {
+  value: T | undefined
+  options: ReadonlyArray<{ id: T; label: string }>
+  onChange: (v: T) => void
+}) {
+  return (
+    <div className="-mx-5 flex gap-2 overflow-x-auto px-5 [scrollbar-width:none]">
+      {options.map((o) => (
+        <button
+          key={o.id}
+          type="button"
+          onClick={() => onChange(o.id)}
+          className={`h-9 shrink-0 rounded-full border px-3.5 text-sm font-medium transition active:scale-95 ${
+            o.id === value ? 'border-brand bg-brand-soft text-brand-ink' : 'border-line bg-surface text-muted'
+          }`}
+        >
+          {o.label}
+        </button>
+      ))}
+    </div>
+  )
+}
+
+/** Runder Abhak-Kreis (nur Anzeige – der umgebende Button übernimmt die Bedienung). */
+export function CheckCircle({ checked, small }: { checked: boolean; small?: boolean }) {
+  return (
+    <span
+      className={`grid shrink-0 place-items-center rounded-full border-2 transition ${small ? 'size-5' : 'size-6'} ${
+        checked ? 'border-brand bg-brand text-white animate-[pop_.25s_ease-out]' : 'border-line'
+      }`}
+    >
+      {checked && <Check size={small ? 12 : 14} strokeWidth={3} />}
+    </span>
+  )
+}
+
+/** Überschrift über einer Kartengruppe, optional mit Aktion rechts. */
+export function SectionTitle({ children, action }: { children: ReactNode; action?: ReactNode }) {
+  return (
+    <div className="mb-2 flex min-h-8 items-center justify-between gap-3">
+      <h2 className="flex items-center gap-2 text-sm font-semibold text-muted">{children}</h2>
+      {action}
+    </div>
+  )
+}

@@ -37,14 +37,23 @@ export function IngredientEditor({ value, onChange }: { value: Ingredient[]; onC
     <div className="space-y-2">
       {value.map((ing, i) => (
         <div key={i} className="flex items-center gap-2">
+          {/* Feste Breite über den Wrapper, da inputClass selbst w-full setzt und sonst gewinnt. */}
+          <div className="w-24 shrink-0">
+            <input
+              value={ing.quantity}
+              onChange={(e) => update(i, { quantity: e.target.value })}
+              placeholder="Menge"
+              aria-label="Menge"
+              className={`${inputClass} text-center`}
+            />
+          </div>
           <input
-            value={ing.quantity}
-            onChange={(e) => update(i, { quantity: e.target.value })}
-            placeholder="Menge"
-            aria-label="Menge"
-            className={`${inputClass} w-24 shrink-0 px-3 text-center`}
+            value={ing.name}
+            onChange={(e) => update(i, { name: e.target.value })}
+            placeholder="Zutat"
+            aria-label="Zutat"
+            className={`${inputClass} min-w-0 flex-1`}
           />
-          <input value={ing.name} onChange={(e) => update(i, { name: e.target.value })} aria-label="Zutat" className={inputClass} />
           <button
             type="button"
             aria-label={`${ing.name} entfernen`}

@@ -2,51 +2,44 @@ import { useState, type FormEvent } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { Download, Pencil, Plus } from 'lucide-react'
 import { addToList, db, type Ingredient, type Template } from '../../lib/db'
-import { Button, EmptyState, IconButton, PageHeader, Sheet, inputClass } from '../../components/ui'
+import { Button, Field, IconButton, Sheet, inputClass } from '../../components/ui'
 import { IngredientEditor } from '../../components/IngredientEditor'
 import { toast } from '../../components/Toast'
 
 type Draft = { id?: number; name: string; items: Ingredient[] }
 
-export default function Templates() {
+/** Gespeicherte Listen verwalten und laden – öffnet sich aus der Einkaufsliste. */
+export function TemplatesSheet({ open, onClose }: { open: boolean; onClose: () => void }) {
   const templates = useLiveQuery(() => db.templates.orderBy('name').toArray(), [])
   const [editing, setEditing] = useState<Draft | null>(null)
+
+  if (!open) return null
+  if (editing) return <TemplateEditor draft={editing} onClose={() => setEditing(null)} />
 
   const load = async (t: Template) => {
     await addToList(t.items)
     toast(`„${t.name}“ geladen · ${t.items.length} Produkte`)
+    onClose()
   }
 
-  if (!templates) return null
-
   return (
-    <>
-      <PageHeader
-        title="Gespeicherte Listen"
-        subtitle="Komplette Einkäufe mit einem Tipp laden"
-        action={
-          <IconButton label="Neue Liste" tone="brand" onClick={() => setEditing({ name: '', items: [] })}>
-            <Plus size={22} />
-          </IconButton>
-        }
-      />
+    <Sheet open onClose={onClose} title="Gespeicherte Listen">
+      <div className="space-y-3 pt-1 pb-2">
+        <Button variant="secondary" className="w-full" onClick={() => setEditing({ name: '', items: [] })}>
+          <Plus size={18} /> Neue Liste
+        </Button>
 
-      {templates.length === 0 ? (
-        <EmptyState
-          emoji="🔖"
-          title="Noch keine Listen gespeichert"
-          text="Speichere deine Einkaufsliste über das ⋯-Menü oder lege hier eine neue an – z. B. „Wocheneinkauf“."
-        >
-          <Button onClick={() => setEditing({ name: '', items: [] })}>
-            <Plus size={18} /> Liste anlegen
-          </Button>
-        </EmptyState>
-      ) : (
-        <ul className="space-y-3 px-5">
-          {templates.map((t) => (
-            <li key={t.id} className="flex items-center gap-3 rounded-3xl bg-surface p-4 shadow-card">
+        {templates?.length === 0 && (
+          <p className="py-6 text-center text-sm text-muted">
+            Noch keine Listen. Speichere deine aktuelle Einkaufsliste über das ⋯-Menü oder lege hier eine an, z. B. „Wocheneinkauf“.
+          </p>
+        )}
+
+        <ul className="space-y-2">
+          {templates?.map((t) => (
+            <li key={t.id} className="flex items-center gap-3 rounded-3xl bg-bg p-3 pl-4">
               <div className="min-w-0 flex-1">
-                <h3 className="truncate text-[17px] font-semibold">{t.name}</h3>
+                <h3 className="truncate font-semibold">{t.name}</h3>
                 <p className="truncate text-sm text-muted">
                   {t.items.length} Produkte · {t.items.map((i) => i.name).join(', ')}
                 </p>
@@ -60,10 +53,8 @@ export default function Templates() {
             </li>
           ))}
         </ul>
-      )}
-
-      {editing && <TemplateEditor draft={editing} onClose={() => setEditing(null)} />}
-    </>
+      </div>
+    </Sheet>
   )
 }
 
@@ -89,12 +80,11 @@ function TemplateEditor({ draft, onClose }: { draft: Draft; onClose: () => void 
   return (
     <Sheet open onClose={onClose} title={d.id ? 'Liste bearbeiten' : 'Neue Liste'}>
       <form onSubmit={save} className="space-y-5 pt-1 pb-2">
-        <div>
-          <label className="mb-1.5 block text-sm font-semibold">Name</label>
+        <Field label="Name">
           <input autoFocus={!d.id} value={d.name} onChange={(e) => setD({ ...d, name: e.target.value })} placeholder="z. B. Wocheneinkauf" className={inputClass} />
-        </div>
+        </Field>
         <div>
-          <label className="mb-1.5 block text-sm font-semibold">Produkte</label>
+          <span className="mb-1.5 block text-sm font-semibold">Produkte</span>
           <IngredientEditor value={d.items} onChange={(items) => setD({ ...d, items })} />
         </div>
         <div className="flex gap-2 pt-1">

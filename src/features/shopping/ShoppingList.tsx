@@ -1,11 +1,13 @@
 import { useMemo, useState, type FormEvent, type ReactNode } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
-import { Check, MoreHorizontal, Plus, Trash2, BookmarkPlus, ListX, Eraser } from 'lucide-react'
+import { BookOpen, Bookmark, MoreHorizontal, Plus, Trash2, BookmarkPlus, ListX, Eraser } from 'lucide-react'
 import { addToList, clearChecked, clearList, db, deleteItem, saveListAsTemplate, toggleItem, type ListItem, type Recipe } from '../../lib/db'
 import { CATEGORIES } from '../../lib/categories'
 import { parseEntry } from '../../lib/parse'
-import { Button, EmptyState, IconButton, PageHeader, Sheet, inputClass } from '../../components/ui'
+import { Button, CheckCircle, EmptyState, IconButton, PageHeader, Sheet, inputClass } from '../../components/ui'
 import { toast } from '../../components/Toast'
+import { RecipesSheet } from './RecipesSheet'
+import { TemplatesSheet } from './TemplatesSheet'
 
 export default function ShoppingList() {
   const items = useLiveQuery(() => db.listItems.toArray(), [])
@@ -13,6 +15,8 @@ export default function ShoppingList() {
   const [text, setText] = useState('')
   const [menuOpen, setMenuOpen] = useState(false)
   const [saveOpen, setSaveOpen] = useState(false)
+  const [recipesOpen, setRecipesOpen] = useState(false)
+  const [templatesOpen, setTemplatesOpen] = useState(false)
 
   const open = useMemo(() => (items ?? []).filter((i) => !i.checked), [items])
   const done = useMemo(() => (items ?? []).filter((i) => i.checked).sort((a, b) => a.name.localeCompare(b.name)), [items])
@@ -43,12 +47,20 @@ export default function ShoppingList() {
   return (
     <>
       <PageHeader
-        title="Einkaufsliste"
+        title="Einkauf"
         subtitle={total === 0 ? 'Was brauchst du?' : `${done.length} von ${total} im Wagen`}
         action={
-          <IconButton label="Mehr" onClick={() => setMenuOpen(true)}>
-            <MoreHorizontal size={20} />
-          </IconButton>
+          <div className="flex gap-2">
+            <IconButton label="Rezepte" onClick={() => setRecipesOpen(true)}>
+              <BookOpen size={19} />
+            </IconButton>
+            <IconButton label="Gespeicherte Listen" onClick={() => setTemplatesOpen(true)}>
+              <Bookmark size={19} />
+            </IconButton>
+            <IconButton label="Mehr" onClick={() => setMenuOpen(true)}>
+              <MoreHorizontal size={20} />
+            </IconButton>
+          </div>
         }
       />
 
@@ -176,6 +188,8 @@ export default function ShoppingList() {
       </Sheet>
 
       <SaveSheet open={saveOpen} onClose={() => setSaveOpen(false)} />
+      <RecipesSheet open={recipesOpen} onClose={() => setRecipesOpen(false)} />
+      <TemplatesSheet open={templatesOpen} onClose={() => setTemplatesOpen(false)} />
     </>
   )
 }
@@ -184,13 +198,7 @@ function Row({ item }: { item: ListItem }) {
   return (
     <li className="group flex items-center gap-3 border-b border-line/70 pr-2 pl-4 last:border-0">
       <button type="button" onClick={() => toggleItem(item)} className="flex min-h-14 flex-1 items-center gap-3 py-2 text-left">
-        <span
-          className={`grid size-6 shrink-0 place-items-center rounded-full border-2 transition ${
-            item.checked ? 'border-brand bg-brand text-white animate-[pop_.25s_ease-out]' : 'border-line'
-          }`}
-        >
-          {item.checked && <Check size={14} strokeWidth={3} />}
-        </span>
+        <CheckCircle checked={item.checked} />
         <span className={`flex-1 text-[15px] transition ${item.checked ? 'text-muted line-through' : 'font-medium'}`}>{item.name}</span>
         {item.quantity && (
           <span className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${item.checked ? 'text-muted' : 'bg-bg text-muted'}`}>

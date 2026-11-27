@@ -1,33 +1,39 @@
-import { useState, type ComponentType } from 'react'
-import { BookOpen, Bookmark, ShoppingCart, type LucideIcon } from 'lucide-react'
+import { useEffect, useState, type ComponentType } from 'react'
+import { LayoutDashboard, ShoppingCart, Target, type LucideIcon } from 'lucide-react'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { db } from './lib/db'
+import { today } from './lib/dates'
+import { onNavigate } from './lib/nav'
 import { Toaster } from './components/Toast'
+import Overview from './features/overview/Overview'
 import ShoppingList from './features/shopping/ShoppingList'
-import Recipes from './features/recipes/Recipes'
-import Templates from './features/templates/Templates'
+import GoalsTodos from './features/goals/GoalsTodos'
 
-// Neue Module (z. B. Aufgaben, Budget) bekommen hier einfach einen weiteren Tab.
+// Neue Module (z. B. Putzplan) bekommen hier einfach einen weiteren Tab.
 const TABS = [
+  { id: 'overview', label: 'Übersicht', icon: LayoutDashboard, Page: Overview },
+  { id: 'goals', label: 'Ziele & To-dos', icon: Target, Page: GoalsTodos },
   { id: 'list', label: 'Einkauf', icon: ShoppingCart, Page: ShoppingList },
-  { id: 'recipes', label: 'Rezepte', icon: BookOpen, Page: Recipes },
-  { id: 'templates', label: 'Listen', icon: Bookmark, Page: Templates },
 ] as const satisfies ReadonlyArray<{ id: string; label: string; icon: LucideIcon; Page: ComponentType }>
 
 type TabId = (typeof TABS)[number]['id']
+const isTab = (t: unknown): t is TabId => TABS.some((x) => x.id === t)
 
 function readTab(): TabId {
   try {
     const t = localStorage.getItem('tab')
-    if (TABS.some((x) => x.id === t)) return t as TabId
+    if (isTab(t)) return t
   } catch {}
-  return 'list'
+  return 'overview'
 }
 
 export default function App() {
   const [tab, setTab] = useState<TabId>(readTab)
   const openCount = useLiveQuery(() => db.listItems.filter((i) => !i.checked).count(), [], 0)
-  const { Page } = TABS.find((t) => t.id === tab)!
+  const t = today()
+  const dueCount = useLiveQuery(() => db.todos.filter((x) => !x.done && !!x.due && x.due <= t).count(), [t], 0)
+  const badges: Partial<Record<TabId, number>> = { list: openCount, goals: dueCount }
+  const { Page } = TABS.find((x) => x.id === tab)!
 
   const go = (id: TabId) => {
     setTab(id)
@@ -36,6 +42,8 @@ export default function App() {
       localStorage.setItem('tab', id)
     } catch {}
   }
+
+  useEffect(() => onNavigate((id) => isTab(id) && go(id)), [])
 
   return (
     <div className="mx-auto min-h-dvh max-w-lg pb-[calc(5.5rem+env(safe-area-inset-bottom))]">
@@ -47,6 +55,7 @@ export default function App() {
         <div className="mx-auto flex max-w-lg px-2 pt-2 pb-[max(0.5rem,env(safe-area-inset-bottom))]">
           {TABS.map(({ id, label, icon: Icon }) => {
             const active = id === tab
+            const badge = badges[id] ?? 0
             return (
               <button
                 key={id}
@@ -60,9 +69,11 @@ export default function App() {
                   <Icon size={21} strokeWidth={active ? 2.4 : 2} />
                 </span>
                 {label}
-                {id === 'list' && openCount > 0 && (
-                  <span className="absolute top-0 left-1/2 ml-3 min-w-5 rounded-full bg-brand px-1.5 text-[10px] leading-5 text-white">
-                    {openCount}
+                {badge > 0 && (
+                  <span
+                    className={`absolute top-0 left-1/2 ml-3 min-w-5 rounded-full px-1.5 text-[10px] leading-5 text-white ${id === 'goals' ? 'bg-warn' : 'bg-brand'}`}
+                  >
+                    {badge}
                   </span>
                 )}
               </button>

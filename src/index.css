@@ -13,6 +13,10 @@
   --color-brand-soft: #e7f6ec;
   --color-brand-ink: #0f5f2e;
 
+  /* Hinweise, die Aufmerksamkeit brauchen (Kündigungsfrist naht, To-do überfällig) */
+  --color-warn: #b45309;
+  --color-warn-soft: #fef3e2;
+
   --shadow-card: 0 1px 2px rgb(16 24 20 / 0.04), 0 4px 16px rgb(16 24 20 / 0.05);
 }
 

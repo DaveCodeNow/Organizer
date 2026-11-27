@@ -2,67 +2,60 @@ import { useState, type FormEvent } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { Pencil, Plus, ShoppingCart } from 'lucide-react'
 import { addToList, db, type Ingredient, type Recipe } from '../../lib/db'
-import { Button, EmptyState, IconButton, PageHeader, Sheet, inputClass } from '../../components/ui'
+import { Button, Field, IconButton, Sheet, inputClass } from '../../components/ui'
 import { IngredientEditor } from '../../components/IngredientEditor'
 import { toast } from '../../components/Toast'
 
 const EMOJIS = ['🥗', '🍝', '🍛', '🌮', '🍕', '🍲', '🥘', '🍜', '🥪', '🍳', '🥞', '🍔', '🍣', '🥙', '🍰', '🥤']
 
 type Draft = { id?: number; name: string; emoji: string; ingredients: Ingredient[] }
+const blank = (): Draft => ({ name: '', emoji: EMOJIS[0], ingredients: [] })
 
-export default function Recipes() {
+/** Rezepte verwalten – öffnet sich aus der Einkaufsliste. Beim Bearbeiten ersetzt der Editor das Sheet, danach geht es zurück zur Übersicht. */
+export function RecipesSheet({ open, onClose }: { open: boolean; onClose: () => void }) {
   const recipes = useLiveQuery(() => db.recipes.orderBy('name').toArray(), [])
   const [editing, setEditing] = useState<Draft | null>(null)
+
+  if (!open) return null
+  if (editing) return <RecipeEditor draft={editing} onClose={() => setEditing(null)} />
 
   const addRecipe = async (r: Recipe) => {
     await addToList(r.ingredients)
     toast(`${r.emoji} ${r.ingredients.length} Zutaten aus „${r.name}“ hinzugefügt`)
   }
 
-  if (!recipes) return null
-
   return (
-    <>
-      <PageHeader
-        title="Rezepte"
-        subtitle="Ein Tipp – alle Zutaten auf der Liste"
-        action={
-          <IconButton label="Neues Rezept" tone="brand" onClick={() => setEditing({ name: '', emoji: EMOJIS[0], ingredients: [] })}>
-            <Plus size={22} />
-          </IconButton>
-        }
-      />
+    <Sheet open onClose={onClose} title="Rezepte">
+      <div className="space-y-3 pt-1 pb-2">
+        <Button variant="secondary" className="w-full" onClick={() => setEditing(blank())}>
+          <Plus size={18} /> Neues Rezept
+        </Button>
 
-      {recipes.length === 0 ? (
-        <EmptyState emoji="📖" title="Noch keine Rezepte" text="Lege Rezepte mit ihren Zutaten an und setze sie mit einem Tipp auf die Einkaufsliste.">
-          <Button onClick={() => setEditing({ name: '', emoji: EMOJIS[0], ingredients: [] })}>
-            <Plus size={18} /> Rezept anlegen
-          </Button>
-        </EmptyState>
-      ) : (
-        <div className="grid grid-cols-1 gap-3 px-5 sm:grid-cols-2">
-          {recipes.map((r) => (
-            <article key={r.id} className="flex flex-col rounded-3xl bg-surface p-4 shadow-card">
-              <div className="flex items-start gap-3">
-                <div className="grid size-12 shrink-0 place-items-center rounded-2xl bg-bg text-2xl">{r.emoji}</div>
-                <div className="min-w-0 flex-1">
-                  <h3 className="truncate text-[17px] font-semibold">{r.name}</h3>
-                  <p className="line-clamp-2 text-sm text-muted">{r.ingredients.map((i) => i.name).join(', ') || 'Keine Zutaten'}</p>
-                </div>
-                <IconButton label={`${r.name} bearbeiten`} tone="danger" onClick={() => setEditing({ ...r })}>
-                  <Pencil size={17} />
-                </IconButton>
+        {recipes?.length === 0 && (
+          <p className="py-6 text-center text-sm text-muted">Noch keine Rezepte. Lege eines an und setze die Zutaten später mit einem Tipp auf die Liste.</p>
+        )}
+
+        <ul className="space-y-2">
+          {recipes?.map((r) => (
+            <li key={r.id} className="flex items-center gap-3 rounded-3xl bg-bg p-3">
+              <div className="grid size-11 shrink-0 place-items-center rounded-2xl bg-surface text-2xl">{r.emoji}</div>
+              <div className="min-w-0 flex-1">
+                <h3 className="truncate font-semibold">{r.name}</h3>
+                <p className="truncate text-sm text-muted">{r.ingredients.map((i) => i.name).join(', ') || 'Keine Zutaten'}</p>
               </div>
-              <Button variant="secondary" className="mt-4 w-full" disabled={r.ingredients.length === 0} onClick={() => addRecipe(r)}>
-                <ShoppingCart size={18} /> Auf die Liste · {r.ingredients.length}
-              </Button>
-            </article>
+              <IconButton label={`${r.name} bearbeiten`} tone="danger" onClick={() => setEditing({ ...r })}>
+                <Pencil size={17} />
+              </IconButton>
+              {r.ingredients.length > 0 && (
+                <IconButton label={`Zutaten von ${r.name} auf die Liste`} tone="brand" onClick={() => addRecipe(r)}>
+                  <ShoppingCart size={18} />
+                </IconButton>
+              )}
+            </li>
           ))}
-        </div>
-      )}
-
-      {editing && <RecipeEditor draft={editing} onClose={() => setEditing(null)} />}
-    </>
+        </ul>
+      </div>
+    </Sheet>
   )
 }
 
@@ -88,22 +81,19 @@ function RecipeEditor({ draft, onClose }: { draft: Draft; onClose: () => void })
   return (
     <Sheet open onClose={onClose} title={d.id ? 'Rezept bearbeiten' : 'Neues Rezept'}>
       <form onSubmit={save} className="space-y-5 pt-1 pb-2">
-        <div>
-          <label className="mb-1.5 block text-sm font-semibold">Name</label>
+        <Field label="Name">
           <input autoFocus={!d.id} value={d.name} onChange={(e) => setD({ ...d, name: e.target.value })} placeholder="z. B. Bowl" className={inputClass} />
-        </div>
+        </Field>
 
         <div>
-          <label className="mb-1.5 block text-sm font-semibold">Symbol</label>
+          <span className="mb-1.5 block text-sm font-semibold">Symbol</span>
           <div className="flex flex-wrap gap-1.5">
             {EMOJIS.map((em) => (
               <button
                 key={em}
                 type="button"
                 onClick={() => setD({ ...d, emoji: em })}
-                className={`grid size-10 place-items-center rounded-xl text-xl transition ${
-                  d.emoji === em ? 'bg-brand-soft ring-2 ring-brand' : 'bg-bg'
-                }`}
+                className={`grid size-10 place-items-center rounded-xl text-xl transition ${d.emoji === em ? 'bg-brand-soft ring-2 ring-brand' : 'bg-bg'}`}
               >
                 {em}
               </button>
@@ -112,7 +102,7 @@ function RecipeEditor({ draft, onClose }: { draft: Draft; onClose: () => void })
         </div>
 
         <div>
-          <label className="mb-1.5 block text-sm font-semibold">Zutaten</label>
+          <span className="mb-1.5 block text-sm font-semibold">Zutaten</span>
           <IngredientEditor value={d.ingredients} onChange={(ingredients) => setD({ ...d, ingredients })} />
         </div>
 

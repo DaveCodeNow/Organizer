@@ -28,10 +28,72 @@ export interface Template {
   createdAt: number
 }
 
+// ---------- Haushaltsübersicht ----------
+
+export type ContractKind = 'strom' | 'gas' | 'internet'
+export type CostKind = ContractKind | 'sonstig'
+export type Interval = 'monat' | 'quartal' | 'jahr'
+/** Kündigungsfrist: Anzahl + w (Wochen) oder m (Monate) */
+export type Notice = '2w' | '4w' | '1m' | '3m' | '6m'
+
+/** Fixkosten-Posten. Strom, Gas und Internet gibt es je einmal und sie bringen Vertragsdetails mit. */
+export interface FixedCost {
+  id: number
+  kind: CostKind
+  name: string
+  /** Betrag in Euro pro `interval` */
+  amount: number
+  interval: Interval
+  provider?: string
+  contractNumber?: string
+  meterNumber?: string
+  /** YYYY-MM-DD */
+  contractEnd?: string
+  notice?: Notice
+  note?: string
+  createdAt: number
+}
+
+// ---------- Ziele & To-dos ----------
+
+export interface Todo {
+  id: number
+  title: string
+  /** Fälligkeit YYYY-MM-DD; leer = ohne Termin */
+  due?: string
+  done: boolean
+  doneAt?: number
+  /** Freie Tags zum Kategorisieren, z. B. „Masterprojekt“ */
+  tags?: string[]
+  createdAt: number
+}
+
+export interface SubGoal {
+  id: string
+  title: string
+  done: boolean
+}
+
+export interface Goal {
+  id: number
+  title: string
+  emoji: string
+  note?: string
+  /** YYYY-MM-DD, optional */
+  targetDate?: string
+  subgoals: SubGoal[]
+  done: boolean
+  tags?: string[]
+  createdAt: number
+}
+
 export const db = new Dexie('haushalt') as Dexie & {
   listItems: EntityTable<ListItem, 'id'>
   recipes: EntityTable<Recipe, 'id'>
   templates: EntityTable<Template, 'id'>
+  fixedCosts: EntityTable<FixedCost, 'id'>
+  todos: EntityTable<Todo, 'id'>
+  goals: EntityTable<Goal, 'id'>
 }
 
 db.version(1).stores({
@@ -39,6 +101,22 @@ db.version(1).stores({
   recipes: '++id, name',
   templates: '++id, name',
 })
+
+// Booleans (done) sind in IndexedDB keine gültigen Index-Schlüssel – daher nicht indiziert.
+db.version(2).stores({
+  fixedCosts: '++id, kind',
+  todos: '++id, due',
+  goals: '++id',
+})
+
+// Tags als Multi-Entry-Index (*tags), damit später auch direkt danach gefiltert werden kann.
+db.version(3).stores({
+  todos: '++id, due, *tags',
+  goals: '++id, *tags',
+})
+
+/** Kurze, eindeutige ID für eingebettete Objekte (crypto.randomUUID fehlt bei http im WLAN). */
+export const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 8)
 
 const norm = (s: string) => s.trim().toLowerCase()
 
