@@ -3,7 +3,7 @@
 Persönliche Haushalts- und Produktivitäts-PWA, primär fürs Handy. Aktuell ein Nutzer, alle Daten lokal im Browser.
 
 Module (Tabs):
-- **Übersicht** (`features/overview`) – Fixkosten pro Monat, Strom-/Gas-/Internetvertrag mit Kündigungsfrist-Warnung, weitere Fixkosten, Kurzinfos aus den anderen Modulen
+- **Übersicht** (`features/overview`) – Fixkosten pro Monat, Verträge (Miete mit Kalt/Nebenkosten, Strom/Gas mit Tarif: Grundpreis, Arbeitspreis, Jahresverbrauch → Abschlagsprüfung, Internet) mit Kündigungsfrist-Warnung, weitere Fixkosten, Kurzinfos aus den anderen Modulen
 - **Einkauf** (`features/shopping`) – Einkaufsliste; Rezepte und gespeicherte Listen werden über Buttons im Header als Bottom Sheets verwaltet. Alle eingegebenen Produkte werden in der Tabelle `products` gemerkt (ID aus dem Namen, `productId`), daraus kommen Vorschläge beim Tippen, die Rückfrage „Meintest du …?“ bei Tippfehlern (`lib/products.ts`) und die Produktauswahl (`ProductsSheet`)
 - **Ziele & To-dos** (`features/goals`) – To-dos mit Zeithorizont (Heute/Woche/Monat/Jahr/Datum), Ziele mit Unterzielen, Habits (täglich oder x-mal pro Woche, Wochenleiste Mo–So, Serien); je höchstens eine frei anlegbare Kategorie mit Symbol (`goals/categories.tsx`, Tabelle `goalCategories`, verwaltet in `CategoryManager.tsx`) und gemeinsamem Kategorie-Filter. Ziele werden nach Kategorie gruppiert; Symbole gibt es nur an Kategorien, nicht an Zielen. (Tags/`tagMeta` sind veraltet, in DB v5 migriert.)
 

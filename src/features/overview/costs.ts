@@ -1,12 +1,16 @@
-import { Flame, Wifi, Zap, type LucideIcon } from 'lucide-react'
-import type { ContractKind, FixedCost, Interval, Notice } from '../../lib/db'
+import { Flame, KeyRound, Wifi, Zap, type LucideIcon } from 'lucide-react'
+import { db, type ContractKind, type FixedCost, type Interval, type Notice } from '../../lib/db'
 import { daysUntil, formatDate, fromISO, toISO } from '../../lib/dates'
 
-export const CONTRACTS: ReadonlyArray<{ id: ContractKind; label: string; icon: LucideIcon }> = [
-  { id: 'strom', label: 'Strom', icon: Zap },
-  { id: 'gas', label: 'Gas', icon: Flame },
-  { id: 'internet', label: 'Internet', icon: Wifi },
+export const CONTRACTS: ReadonlyArray<{ id: ContractKind; label: string; title: string; icon: LucideIcon }> = [
+  { id: 'miete', label: 'Miete', title: 'Mietvertrag', icon: KeyRound },
+  { id: 'strom', label: 'Strom', title: 'Stromvertrag', icon: Zap },
+  { id: 'gas', label: 'Gas', title: 'Gasvertrag', icon: Flame },
+  { id: 'internet', label: 'Internet', title: 'Internetvertrag', icon: Wifi },
 ]
+
+/** Strom und Gas haben Tarifangaben (Grundpreis, Arbeitspreis, Verbrauch) */
+export const isEnergy = (kind: string) => kind === 'strom' || kind === 'gas'
 
 export const INTERVALS: ReadonlyArray<{ id: Interval; label: string; per: string; perMonth: number }> = [
   { id: 'monat', label: 'Monatlich', per: 'pro Monat', perMonth: 1 },
@@ -34,6 +38,58 @@ export const euro = (n: number) => euroFmt.format(n)
 export function parseAmount(s: string) {
   const clean = s.replace(/[\s€]/g, '').replace(/\.(?=\d{3}(?:\D|$))/g, '').replace(',', '.')
   return clean === '' ? NaN : Number(clean)
+}
+
+const numFmt = new Intl.NumberFormat('de-DE', { maximumFractionDigits: 2 })
+export const num = (n: number) => numFmt.format(n)
+
+type Tariff = Pick<FixedCost, 'basePrice' | 'unitPrice' | 'annualUsage'>
+
+/** Kosten laut Tarif pro Monat: Grundpreis + Verbrauch × Arbeitspreis / 12 – nur wenn Arbeitspreis und Verbrauch bekannt sind. */
+export function tariffPerMonth(c: Tariff) {
+  if (c.unitPrice == null || c.annualUsage == null) return undefined
+  return (c.basePrice ?? 0) + (c.annualUsage * c.unitPrice) / 100 / 12
+}
+
+/** „32,5 ct/kWh · Grundpreis 12,90 € · 2.500 kWh/Jahr“ – oder undefined ohne Angaben. */
+export function tariffLine(c: Tariff) {
+  const parts = [
+    c.unitPrice != null && `${num(c.unitPrice)} ct/kWh`,
+    c.basePrice != null && `Grundpreis ${euroShort(c.basePrice)}/Monat`,
+    c.annualUsage != null && `${num(c.annualUsage)} kWh/Jahr`,
+  ].filter(Boolean)
+  return parts.length ? parts.join(' · ') : undefined
+}
+
+/** Passt der Abschlag zum Tarif? Kleine Abweichungen (< 30 € im Jahr) gelten als passend. */
+export function tariffCheck(c: FixedCost): Status | undefined {
+  const t = tariffPerMonth(c)
+  if (t == null) return undefined
+  const diff = (perMonth(c) - t) * 12
+  if (Math.abs(diff) < 30) return { text: `Abschlag passt zum Tarif (≈ ${euro(t)} pro Monat)`, tone: 'muted' }
+  return diff < 0
+    ? { text: `Abschlag ca. ${euro(-diff)} im Jahr zu niedrig – Nachzahlung möglich (Tarif ≈ ${euro(t)} pro Monat)`, tone: 'warn' }
+    : { text: `Abschlag ca. ${euro(diff)} im Jahr höher als nötig (Tarif ≈ ${euro(t)} pro Monat)`, tone: 'muted' }
+}
+
+/** Euro ohne Cent bei glatten Beträgen: 780 → „780 €“, 12,9 → „12,90 €“ */
+export const euroShort = (n: number) => (Number.isInteger(n) ? `${num(n)} €` : euro(n))
+
+/** „780 € kalt + 170 € NK“ – kurz, damit es neben dem Betrag in eine Zeile passt; undefined ohne Aufschlüsselung. */
+export function rentLine(c: Pick<FixedCost, 'coldRent' | 'utilities'>) {
+  const parts = [c.coldRent != null && `${euroShort(c.coldRent)} kalt`, c.utilities != null && `${euroShort(c.utilities)} NK`].filter(Boolean)
+  return parts.length ? parts.join(' + ') : undefined
+}
+
+/**
+ * Gibt es noch keinen Mietvertrag, aber genau einen sonstigen Posten „Miete“ (auch Kalt-/Warmmiete), wird er
+ * zum Mietvertrag. Idempotent – läuft bei jedem Laden der Übersicht, auch nachdem Daten per Sync ankommen.
+ */
+export async function adoptRent(costs: FixedCost[]) {
+  if (costs.some((c) => c.kind === 'miete')) return
+  const candidates = costs.filter((c) => c.kind === 'sonstig' && /^(kalt|warm|gesamt)?miete$/i.test(c.name.trim()))
+  if (candidates.length !== 1) return
+  await db.fixedCosts.update(candidates[0].id, { kind: 'miete', name: 'Miete' })
 }
 
 /** Stichtag, bis zu dem gekündigt werden muss. */

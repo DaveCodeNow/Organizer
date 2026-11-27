@@ -1,11 +1,11 @@
-import { useState, type ReactNode } from 'react'
+import { useEffect, useState, type ReactNode } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { AlertCircle, ChevronRight, CircleCheck, Plus, ShoppingBasket, Target, type LucideIcon } from 'lucide-react'
 import { db, type CostKind, type FixedCost } from '../../lib/db'
 import { today } from '../../lib/dates'
 import { navigate } from '../../lib/nav'
 import { PageHeader, SectionTitle } from '../../components/ui'
-import { CONTRACTS, INTERVALS, contractStatus, euro, perMonth } from './costs'
+import { CONTRACTS, INTERVALS, adoptRent, contractStatus, euro, perMonth, rentLine, tariffCheck, tariffLine } from './costs'
 import { CostEditor, toDraft } from './CostEditor'
 import { AccountButton } from '../account/AccountButton'
 
@@ -16,6 +16,11 @@ export default function Overview() {
   const todos = useLiveQuery(() => db.todos.filter((t) => !t.done).toArray(), [])
   const goals = useLiveQuery(() => db.goals.filter((g) => !g.done).toArray(), [])
   const [editing, setEditing] = useState<ReturnType<typeof toDraft> | null>(null)
+
+  // Einen bisher unter „Weitere Fixkosten“ erfassten Posten „Miete“ als Mietvertrag übernehmen
+  useEffect(() => {
+    if (costs) void adoptRent(costs)
+  }, [costs])
 
   if (!costs || !todos || !goals) return null
 
@@ -94,15 +99,27 @@ export default function Overview() {
                     <span className="grid size-11 place-items-center rounded-full bg-surface">
                       <k.icon size={20} />
                     </span>
-                    <span className="flex-1 font-medium">{k.label}-Vertrag hinterlegen</span>
+                    <span className="flex-1 font-medium">{k.title} hinterlegen</span>
                     <Plus size={20} />
                   </button>
                 )
               }
-              const status = contractStatus(c)
+              const lines = [
+                tariffLine(c) && { text: tariffLine(c)!, tone: 'muted' as const },
+                tariffCheck(c),
+                contractStatus(c),
+              ].filter((x) => !!x)
               return (
                 <CostCard key={k.id} icon={k.icon} cost={c} onClick={() => edit(k.id, c)}>
-                  {status && <p className={`mt-3 border-t border-line/70 pt-3 text-sm ${status.tone === 'warn' ? 'font-medium text-warn' : 'text-muted'}`}>{status.text}</p>}
+                  {lines.length > 0 && (
+                    <div className="mt-3 space-y-1 border-t border-line/70 pt-3">
+                      {lines.map((l) => (
+                        <p key={l.text} className={`text-sm ${l.tone === 'warn' ? 'font-medium text-warn' : 'text-muted'}`}>
+                          {l.text}
+                        </p>
+                      ))}
+                    </div>
+                  )}
                 </CostCard>
               )
             })}
@@ -126,7 +143,7 @@ export default function Overview() {
               onClick={() => edit('sonstig')}
               className="w-full rounded-3xl border border-dashed border-line px-5 py-6 text-center text-sm text-muted"
             >
-              Miete, Versicherungen, Handy, Abos … – hier eintragen, was jeden Monat (oder jedes Jahr) fällig ist.
+              Versicherungen, Handy, Abos, Streaming … – hier eintragen, was jeden Monat (oder jedes Jahr) fällig ist.
             </button>
           ) : (
             <ul className="overflow-hidden rounded-3xl bg-surface">
@@ -187,7 +204,9 @@ function CostCard({ icon: Icon, cost, onClick, children }: { icon: LucideIcon; c
         </span>
         <span className="min-w-0 flex-1">
           <span className="block font-semibold">{cost.name}</span>
-          <span className="block truncate text-sm text-muted">{cost.provider || 'Anbieter nicht angegeben'}</span>
+          <span className="block truncate text-sm text-muted">
+            {cost.kind === 'miete' ? rentLine(cost) || cost.provider || 'Vermieter nicht angegeben' : cost.provider || 'Anbieter nicht angegeben'}
+          </span>
         </span>
         <Amount cost={cost} />
       </div>

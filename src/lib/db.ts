@@ -42,13 +42,13 @@ export interface Product {
 
 // ---------- Haushaltsübersicht ----------
 
-export type ContractKind = 'strom' | 'gas' | 'internet'
+export type ContractKind = 'miete' | 'strom' | 'gas' | 'internet'
 export type CostKind = ContractKind | 'sonstig'
 export type Interval = 'monat' | 'quartal' | 'jahr'
 /** Kündigungsfrist: Anzahl + w (Wochen) oder m (Monate) */
 export type Notice = '2w' | '4w' | '1m' | '3m' | '6m'
 
-/** Fixkosten-Posten. Strom, Gas und Internet gibt es je einmal und sie bringen Vertragsdetails mit. */
+/** Fixkosten-Posten. Miete, Strom, Gas und Internet gibt es je einmal und sie bringen Vertragsdetails mit. */
 export interface FixedCost {
   id: string
   kind: CostKind
@@ -59,6 +59,16 @@ export interface FixedCost {
   provider?: string
   contractNumber?: string
   meterNumber?: string
+  /** Strom/Gas: Grundpreis in Euro pro Monat */
+  basePrice?: number
+  /** Strom/Gas: Arbeitspreis in Cent pro kWh */
+  unitPrice?: number
+  /** Strom/Gas: Verbrauch in kWh pro Jahr */
+  annualUsage?: number
+  /** Miete: Kaltmiete in Euro pro Monat (amount = Kaltmiete + Nebenkosten) */
+  coldRent?: number
+  /** Miete: Nebenkosten-Vorauszahlung in Euro pro Monat */
+  utilities?: number
   /** YYYY-MM-DD */
   contractEnd?: string
   notice?: Notice
