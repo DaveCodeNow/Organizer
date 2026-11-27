@@ -1,4 +1,4 @@
-import { useEffect, type ReactNode } from 'react'
+import { useEffect, useRef, type ReactNode } from 'react'
 import { Check, X, type LucideIcon } from 'lucide-react'
 
 /** Seitenkopf. Betonte Wörter im Titel als <em> übergeben – sie werden kursiv in der Akzentfarbe gesetzt. */
@@ -76,23 +76,32 @@ export function Button({
   )
 }
 
-/** Bottom Sheet – fährt von unten herein, wie bei nativen Apps. */
+// Zählt offene Sheets, damit beim Schließen eines oberen Sheets das Scrollen gesperrt bleibt
+let openSheets = 0
+
+/** Bottom Sheet – fährt von unten herein, wie bei nativen Apps. Kann über einem anderen Sheet liegen. */
 export function Sheet({ open, onClose, title, children }: { open: boolean; onClose: () => void; title: string; children: ReactNode }) {
+  const openedAt = useRef(0)
+  useEffect(() => {
+    if (open) openedAt.current = Date.now()
+  }, [open])
   useEffect(() => {
     if (!open) return
     const onKey = (e: KeyboardEvent) => e.key === 'Escape' && onClose()
     window.addEventListener('keydown', onKey)
     document.body.style.overflow = 'hidden'
+    openSheets++
     return () => {
       window.removeEventListener('keydown', onKey)
-      document.body.style.overflow = ''
+      if (--openSheets === 0) document.body.style.overflow = ''
     }
   }, [open, onClose])
 
   if (!open) return null
   return (
     <div className="fixed inset-0 z-50 flex items-end justify-center sm:items-center">
-      <div className="absolute inset-0 bg-ink/25 backdrop-blur-[2px] animate-[fade-in_.2s_ease-out]" onClick={onClose} />
+      {/* Klicks direkt nach dem Öffnen ignorieren: sonst schließt das Loslassen nach langem Drücken das Sheet gleich wieder */}
+      <div className="absolute inset-0 bg-ink/25 backdrop-blur-[2px] animate-[fade-in_.2s_ease-out]" onClick={() => Date.now() - openedAt.current > 400 && onClose()} />
       <div
         role="dialog"
         aria-label={title}

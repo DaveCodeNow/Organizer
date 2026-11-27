@@ -284,6 +284,14 @@ export async function rememberProducts(items: Array<{ name: string; category?: C
 
 export const deleteProduct = (id: string) => db.products.delete(id)
 
+/** Kategorie eines Produkts von Hand ändern; offene Einträge auf der Liste wandern gleich mit. */
+export async function setProductCategory(product: Product, category: CategoryId) {
+  await db.transaction('rw', db.products, db.listItems, async () => {
+    await db.products.update(product.id, { category })
+    await db.listItems.filter((i) => productId(i.name) === product.id).modify({ category })
+  })
+}
+
 /** Einmalig: Produkte aus vorhandener Liste, Rezepten und gespeicherten Listen übernehmen. */
 export async function seedProducts() {
   const KEY = 'products:seeded'
@@ -296,6 +304,8 @@ export async function seedProducts() {
 /** Fügt Zutaten zur Einkaufsliste hinzu. Bereits vorhandene Produkte werden zusammengeführt statt doppelt angelegt. */
 export async function addToList(items: Array<Partial<Ingredient> & { name: string }>) {
   await rememberProducts(items)
+  // Die Kategorie des gemerkten Produkts hat Vorrang – sie kann von Hand korrigiert worden sein.
+  const products = new Map((await db.products.bulkGet(items.map((i) => productId(i.name)))).flatMap((p) => (p ? [[p.id, p]] : [])))
   await db.transaction('rw', db.listItems, async () => {
     const existing = await db.listItems.toArray()
     for (const raw of items) {
@@ -315,7 +325,7 @@ export async function addToList(items: Array<Partial<Ingredient> & { name: strin
           id: newId(),
           name,
           quantity,
-          category: raw.category ?? guessCategory(name),
+          category: products.get(productId(name))?.category ?? raw.category ?? guessCategory(name),
           checked: false,
           createdAt: Date.now(),
         }
