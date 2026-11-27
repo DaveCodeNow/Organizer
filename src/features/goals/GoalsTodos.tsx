@@ -8,7 +8,7 @@ import { Todos } from './Todos'
 import { Goals } from './Goals'
 import { Habits } from './Habits'
 import { CategoryManager } from './CategoryManager'
-import { CategoriesContext, categoryLabel, useCategoriesQuery } from './categories'
+import { CategoriesContext, CategoryTag, useCategoriesQuery } from './categories'
 
 const VIEWS = [
   { id: 'todos', label: 'To-dos' },
@@ -64,7 +64,7 @@ export default function GoalsTodos() {
   return (
     <CategoriesContext.Provider value={cats}>
       <PageHeader
-        title="Ziele & To-dos"
+        title={<>Ziele &amp; <em>To-dos</em></>}
         subtitle={subtitle}
         action={
           <IconButton label="Kategorien verwalten" onClick={() => setManaging(true)}>
@@ -75,7 +75,7 @@ export default function GoalsTodos() {
       <div className="space-y-3 px-5 pb-2">
         <Segmented value={view} options={VIEWS} onChange={changeView} />
         {cats.length > 0 && (
-          <Chips value={category ?? ''} options={[{ id: '', label: 'Alle' }, ...cats.map((c) => ({ id: c.id, label: categoryLabel(c) }))]} onChange={changeCategory} />
+          <Chips value={category ?? ''} options={[{ id: '', label: 'Alle' }, ...cats.map((c) => ({ id: c.id, label: <CategoryTag cat={c} size={14} /> }))]} onChange={changeCategory} />
         )}
       </div>
       {view === 'todos' && <Todos category={category} />}

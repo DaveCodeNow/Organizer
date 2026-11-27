@@ -48,12 +48,14 @@ export default function AuthScreen() {
   return (
     <div className="mx-auto flex min-h-dvh max-w-lg flex-col justify-center px-5 pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)]">
       <div className="mb-8 text-center">
-        <img src={`${import.meta.env.BASE_URL}icon.svg`} alt="" className="mx-auto mb-4 size-16" />
-        <h1 className="text-[28px] font-bold tracking-tight">Haushalt</h1>
-        <p className="mt-1 text-sm text-muted">Melde dich an, um deine Daten auf allen Geräten zu haben.</p>
+        <img src={`${import.meta.env.BASE_URL}icon.svg`} alt="" className="mx-auto mb-6 size-16" />
+        <h1 className="font-serif text-[38px] leading-[1.1] font-normal tracking-tight">
+          Willkommen <em>zuhause</em>
+        </h1>
+        <p className="mt-3 text-sm text-muted">Melde dich an, um deine Daten auf allen Geräten zu haben.</p>
       </div>
 
-      <form onSubmit={submit} className="space-y-4 rounded-3xl bg-surface p-5 shadow-card">
+      <form onSubmit={submit} className="space-y-4 rounded-[2rem] bg-surface p-6">
         <Segmented
           value={mode}
           onChange={(m) => {
@@ -79,7 +81,7 @@ export default function AuthScreen() {
             className={inputClass}
           />
         </Field>
-        {error && <p className="rounded-2xl bg-red-50 px-4 py-3 text-sm text-red-700">{error}</p>}
+        {error && <p className="rounded-2xl bg-warn-soft px-4 py-3 text-sm text-warn">{error}</p>}
         {info && <p className="rounded-2xl bg-brand-soft px-4 py-3 text-sm text-brand-ink">{info}</p>}
         <Button type="submit" disabled={busy} className="w-full">
           {busy ? 'Einen Moment …' : mode === 'login' ? 'Anmelden' : 'Konto erstellen'}

@@ -1,12 +1,12 @@
 import { useState, type FormEvent } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
-import { Check, Pencil, Plus, X } from 'lucide-react'
+import { Check, Pencil, Plus, Target, Trophy, X } from 'lucide-react'
 import { db, uid, type Goal, type SubGoal, newId } from '../../lib/db'
 import { formatDate } from '../../lib/dates'
 import { Button, CheckCircle, EmptyState, Field, IconButton, SectionTitle, Sheet, fieldClass, inputClass } from '../../components/ui'
 import { confirmDialog } from '../../components/Confirm'
 import { toast } from '../../components/Toast'
-import { CategoryPicker, categoryLabel, findCategory, useCategories } from './categories'
+import { CategoryPicker, CategoryTag, categoryLabel, findCategory, useCategories } from './categories'
 
 // Ziele haben kein eigenes Symbol – Symbole gehören zu den Kategorien (sichtbar in den Gruppen-Überschriften).
 type Draft = { id?: string; title: string; category?: string; note: string; targetDate: string; subgoals: SubGoal[]; done: boolean }
@@ -46,7 +46,7 @@ export function Goals({ category }: { category: string | null }) {
   // Nach Kategorie gruppieren; Ziele ohne (oder mit gelöschter) Kategorie kommen ans Ende.
   const known = (g: Goal) => !!findCategory(cats, g.category)
   const groups = [
-    ...cats.map((c) => ({ key: c.id, label: categoryLabel(c), items: active.filter((g) => g.category === c.id) })),
+    ...cats.map((c) => ({ key: c.id, label: <CategoryTag cat={c} size={17} />, items: active.filter((g) => g.category === c.id) })),
     { key: 'ohne', label: 'Ohne Kategorie', items: active.filter((g) => !known(g)) },
   ].filter((g) => g.items.length > 0)
   // Überschriften nur, wenn sie etwas unterscheiden: nicht bei aktivem Filter und nicht, wenn es gar keine Kategorien gibt.
@@ -63,7 +63,7 @@ export function Goals({ category }: { category: string | null }) {
 
         {goals.length === 0 && !current && (
           <EmptyState
-            emoji="🎯"
+            icon={Target}
             title="Noch keine Ziele"
             text="Ziele sind das große Ganze, z. B. „Masterarbeit abgeben“ oder „Ein Album aufnehmen“. Zerlege sie in Unterziele und ordne sie Kategorien zu."
           />
@@ -73,8 +73,8 @@ export function Goals({ category }: { category: string | null }) {
           <section key={group.key}>
             {showHeadings && (
               <SectionTitle>
-                <span className="text-[15px] text-ink">{group.label}</span>
-                <span className="font-normal">· {group.items.length}</span>
+                {group.label}
+                <span className="font-sans text-sm font-normal text-muted">{group.items.length}</span>
               </SectionTitle>
             )}
             <div className="space-y-3">
@@ -93,7 +93,7 @@ export function Goals({ category }: { category: string | null }) {
                 <li key={g.id} className="border-b border-line/70 last:border-0">
                   <button type="button" onClick={() => setEditing(toDraft(g))} className="flex min-h-14 w-full items-center gap-3 px-4 text-left">
                     <span className="flex-1 text-muted line-through">{g.title}</span>
-                    <span className="text-sm">🏆</span>
+                    <Trophy size={17} className="text-caramel" />
                   </button>
                 </li>
               ))}
@@ -124,7 +124,7 @@ function GoalCard({ goal, onEdit }: { goal: Goal; onEdit: () => void }) {
 
   const complete = async () => {
     await db.goals.update(goal.id, { done: true })
-    toast(`🏆 Ziel „${goal.title}“ erreicht!`)
+    toast(`Ziel „${goal.title}“ erreicht`)
   }
 
   const meta = [
@@ -135,11 +135,11 @@ function GoalCard({ goal, onEdit }: { goal: Goal; onEdit: () => void }) {
     .join(' · ')
 
   return (
-    <article className="rounded-3xl bg-surface p-4 shadow-card">
+    <article className="rounded-3xl bg-surface p-4">
       <div className="flex items-start gap-3">
         <div className="min-w-0 flex-1 pt-1.5 pl-1">
-          <h3 className="text-[17px] leading-snug font-semibold">{goal.title}</h3>
-          <p className="text-sm text-muted">{meta}</p>
+          <h3 className="font-serif text-[19px] leading-[1.15] font-[600]">{goal.title}</h3>
+          <p className="mt-1 text-sm text-muted">{meta}</p>
         </div>
         <IconButton label={`${goal.title} bearbeiten`} tone="danger" onClick={onEdit}>
           <Pencil size={17} />
@@ -181,7 +181,7 @@ function GoalCard({ goal, onEdit }: { goal: Goal; onEdit: () => void }) {
             type="submit"
             aria-label="Unterziel hinzufügen"
             disabled={!text.trim()}
-            className="grid size-11 shrink-0 place-items-center rounded-2xl bg-brand-soft text-brand-ink transition active:scale-95 disabled:opacity-40"
+            className="grid size-11 shrink-0 place-items-center rounded-full bg-brand-soft text-brand-ink transition active:scale-95 disabled:opacity-40"
           >
             <Plus size={20} />
           </button>
@@ -272,7 +272,7 @@ function GoalEditor({ draft, onClose }: { draft: Draft; onClose: () => void }) {
                   type="button"
                   aria-label={`${s.title} entfernen`}
                   onClick={() => set({ subgoals: d.subgoals.filter((_, j) => j !== i) })}
-                  className="grid size-10 shrink-0 place-items-center rounded-full text-muted transition hover:bg-red-50 hover:text-red-600"
+                  className="grid size-10 shrink-0 place-items-center rounded-full text-muted transition hover:bg-warn-soft hover:text-warn"
                 >
                   <X size={18} />
                 </button>
@@ -297,7 +297,7 @@ function GoalEditor({ draft, onClose }: { draft: Draft; onClose: () => void }) {
                 aria-label="Unterziel hinzufügen"
                 onClick={addSub}
                 disabled={!sub.trim()}
-                className="grid size-11 shrink-0 place-items-center rounded-2xl bg-brand-soft text-brand-ink transition active:scale-95 disabled:opacity-40"
+                className="grid size-11 shrink-0 place-items-center rounded-full bg-brand-soft text-brand-ink transition active:scale-95 disabled:opacity-40"
               >
                 <Plus size={20} />
               </button>
@@ -332,7 +332,7 @@ function GoalEditor({ draft, onClose }: { draft: Draft; onClose: () => void }) {
 
         <div className="flex gap-2 pt-1">
           {d.id && (
-            <Button variant="ghost" onClick={remove} className="text-red-600">
+            <Button variant="ghost" onClick={remove} className="text-warn">
               Löschen
             </Button>
           )}

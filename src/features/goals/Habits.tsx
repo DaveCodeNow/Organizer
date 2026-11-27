@@ -1,6 +1,7 @@
 import { useState, type FormEvent } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
-import { Check, Pencil, Plus } from 'lucide-react'
+import { Check, Pencil, Plus, Repeat } from 'lucide-react'
+import { SymbolIcon } from '../../components/icons'
 import { db, type Habit, type HabitFrequency, newId } from '../../lib/db'
 import { addDays, startOfWeek, today, weekDays } from '../../lib/dates'
 import { Button, Chips, EmptyState, Field, IconButton, SectionTitle, Segmented, Sheet, inputClass } from '../../components/ui'
@@ -72,7 +73,7 @@ export function Habits({ category }: { category: string | null }) {
             <p className="py-6 text-center text-sm text-muted">Noch keine Habits in {categoryLabel(current)}.</p>
           ) : (
             <EmptyState
-              emoji="🔁"
+              icon={Repeat}
               title="Noch keine Habits"
               text="Gewohnheiten, die du täglich oder ein paar Mal pro Woche machen willst – z. B. „Gitarre üben“ oder „Sport“. Hake sie in der Wochenleiste ab."
             />
@@ -81,7 +82,7 @@ export function Habits({ category }: { category: string | null }) {
         {groups.map((g) => (
           <section key={g.id}>
             <SectionTitle>
-              {g.label} <span className="font-normal">· {g.items.length}</span>
+              {g.label} <span className="font-sans text-sm font-normal text-muted">{g.items.length}</span>
             </SectionTitle>
             <div className="space-y-3">
               {g.items.map((h) => (
@@ -112,25 +113,25 @@ function HabitCard({ habit, days, showCategory, onEdit }: { habit: Habit; days: 
   let status: string
   if (habit.frequency === 'daily') {
     const streak = dailyStreak(log)
-    status = [streak ? `🔥 ${streak} ${streak === 1 ? 'Tag' : 'Tage'} in Folge` : 'Noch keine Serie', !log.has(t) && 'heute offen'].filter(Boolean).join(' · ')
+    status = [streak ? `${streak} ${streak === 1 ? 'Tag' : 'Tage'} in Folge` : 'Noch keine Serie', !log.has(t) && 'heute offen'].filter(Boolean).join(' · ')
   } else {
     const target = habit.perWeek ?? 1
     const count = days.filter((d) => log.has(d)).length
     const streak = weeklyStreak(habit.log, target)
-    status = [count >= target ? `✓ ${count} von ${target} diese Woche` : `${count} von ${target} diese Woche`, streak && `🔥 ${streak} ${streak === 1 ? 'Woche' : 'Wochen'}`]
+    status = [count >= target ? `${count} von ${target} diese Woche geschafft` : `${count} von ${target} diese Woche`, streak && `Serie: ${streak} ${streak === 1 ? 'Woche' : 'Wochen'}`]
       .filter(Boolean)
       .join(' · ')
   }
 
   return (
-    <article className="rounded-3xl bg-surface p-4 shadow-card">
+    <article className="rounded-3xl bg-surface p-4">
       <div className="flex items-start gap-3">
         <div className="min-w-0 flex-1 pt-1.5 pl-1">
-          <h3 className="text-[17px] leading-snug font-semibold">
-            {emoji && <span className="mr-1.5">{emoji}</span>}
+          <h3 className="flex items-center gap-2 font-serif text-[19px] leading-[1.15] font-[600]">
+            {emoji && <SymbolIcon value={emoji} size={17} className="shrink-0 text-muted" />}
             {habit.title}
           </h3>
-          <p className="text-sm text-muted">{status}</p>
+          <p className="mt-1 text-sm text-muted">{status}</p>
         </div>
         <IconButton label={`${habit.title} bearbeiten`} tone="danger" onClick={onEdit}>
           <Pencil size={17} />
@@ -154,7 +155,7 @@ function HabitCard({ habit, days, showCategory, onEdit }: { habit: Habit; days: 
               <span className={`text-[11px] font-semibold ${isToday ? 'text-brand' : 'text-muted'}`}>{WEEKDAY_LABELS[i]}</span>
               <span
                 className={`grid size-9 place-items-center rounded-full border-2 transition ${
-                  done ? 'border-brand bg-brand text-white animate-[pop_.25s_ease-out]' : isToday ? 'border-brand/60' : 'border-line'
+                  done ? 'border-brand bg-brand text-surface animate-[pop_.25s_ease-out]' : isToday ? 'border-brand/60' : 'border-caramel'
                 }`}
               >
                 {done && <Check size={16} strokeWidth={3} />}
@@ -212,7 +213,7 @@ function HabitEditor({ draft, onClose }: { draft: Draft; onClose: () => void }) 
 
         <div className="flex gap-2 pt-1">
           {d.id && (
-            <Button variant="ghost" onClick={remove} className="text-red-600">
+            <Button variant="ghost" onClick={remove} className="text-warn">
               Löschen
             </Button>
           )}

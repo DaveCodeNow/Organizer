@@ -74,7 +74,7 @@ export function CostEditor({ draft, onClose }: { draft: Draft; onClose: () => vo
     }
   }
 
-  const title = contract ? `${contract.emoji} ${contract.label}-Vertrag` : d.id ? 'Fixkosten bearbeiten' : 'Neue Fixkosten'
+  const title = contract ? `${contract.label}-Vertrag` : d.id ? 'Fixkosten bearbeiten' : 'Neue Fixkosten'
 
   return (
     <Sheet open onClose={onClose} title={title}>
@@ -148,7 +148,7 @@ export function CostEditor({ draft, onClose }: { draft: Draft; onClose: () => vo
 
         <div className="flex gap-2 pt-1">
           {d.id && (
-            <Button variant="ghost" onClick={remove} className="text-red-600">
+            <Button variant="ghost" onClick={remove} className="text-warn">
               Löschen
             </Button>
           )}

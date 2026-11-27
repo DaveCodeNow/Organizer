@@ -1,23 +1,35 @@
 @import "tailwindcss";
 
 @theme {
-  --font-sans: "Inter Variable", ui-sans-serif, system-ui, sans-serif;
+  --font-sans: "DM Sans Variable", ui-sans-serif, system-ui, sans-serif;
+  /* Fraunces nur für Überschriften und Titel */
+  --font-serif: "Fraunces Variable", ui-serif, Georgia, serif;
+  /* DM Sans in 400 / 500 / 700 – „semibold“ wird bewusst zu 500 */
+  --font-weight-semibold: 500;
 
-  --color-bg: #f6f7f4;
-  --color-surface: #ffffff;
-  --color-ink: #1c2420;
-  --color-muted: #6b756f;
-  --color-line: #e6e9e3;
+  /* Warm, ruhig, wohnlich: Tiefe über Farbabstufung (Creme → Elfenbein), keine Schatten */
+  --color-bg: #f4eee4; /* warmes Creme */
+  --color-surface: #fffbf5; /* Elfenbein; auch Text auf Akzent */
+  --color-sand: #e9d9c4; /* Fläche gedämpft – kein text-muted darauf (Kontrast < 4.5) */
+  --color-ink: #2b2620;
+  --color-muted: #6b6157;
+  --color-line: #ddd2c2;
 
-  --color-brand: #16a34a;
-  --color-brand-soft: #e7f6ec;
-  --color-brand-ink: #0f5f2e;
+  /* Gedecktes Salbeigrün – die einzige kräftige Farbe, pro Ansicht nur ein dominanter Einsatz */
+  --color-brand: #3f5e4b;
+  --color-brand-soft: #e9d9c4; /* = sand: ausgewählte Chips, Sekundär-Buttons, aktiver Tab */
+  --color-brand-ink: #3f5e4b;
 
-  /* Hinweise, die Aufmerksamkeit brauchen (Kündigungsfrist naht, To-do überfällig) */
-  --color-warn: #b45309;
-  --color-warn-soft: #fef3e2;
+  --color-caramel: #c9a27e; /* dezente Markierungen */
 
-  --shadow-card: 0 1px 2px rgb(16 24 20 / 0.04), 0 4px 16px rgb(16 24 20 / 0.05);
+  /* Terrakotta, sparsam: Hinweise (Kündigungsfrist, überfällig) und Löschen */
+  --color-warn: #9a5b3c;
+  --color-warn-soft: #f7eee6;
+
+  /* Weiche, kieselartige Rundungen */
+  --radius-2xl: 1.25rem;
+  --radius-3xl: 1.75rem;
+
 }
 
 html,
@@ -33,6 +45,18 @@ body {
   -webkit-font-smoothing: antialiased;
   -webkit-tap-highlight-color: transparent;
   overscroll-behavior-y: none;
+}
+
+h1,
+h2,
+h3 {
+  text-wrap: balance;
+}
+
+/* Betonte Wörter in Überschriften: kursiv und in der Akzentfarbe */
+.font-serif em {
+  font-style: italic;
+  color: var(--color-brand);
 }
 
 @keyframes sheet-in {

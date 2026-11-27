@@ -6,11 +6,10 @@ import { Button, Field, IconButton, Sheet, inputClass } from '../../components/u
 import { confirmDialog } from '../../components/Confirm'
 import { IngredientEditor } from '../../components/IngredientEditor'
 import { toast } from '../../components/Toast'
-
-const EMOJIS = ['🥗', '🍝', '🍛', '🌮', '🍕', '🍲', '🥘', '🍜', '🥪', '🍳', '🥞', '🍔', '🍣', '🥙', '🍰', '🥤']
+import { RECIPE_SYMBOLS, SymbolGrid, SymbolIcon } from '../../components/icons'
 
 type Draft = { id?: string; name: string; emoji: string; ingredients: Ingredient[] }
-const blank = (): Draft => ({ name: '', emoji: EMOJIS[0], ingredients: [] })
+const blank = (): Draft => ({ name: '', emoji: 'salad', ingredients: [] })
 
 /** Rezepte verwalten – öffnet sich aus der Einkaufsliste. Beim Bearbeiten ersetzt der Editor das Sheet, danach geht es zurück zur Übersicht. */
 export function RecipesSheet({ open, onClose }: { open: boolean; onClose: () => void }) {
@@ -22,7 +21,7 @@ export function RecipesSheet({ open, onClose }: { open: boolean; onClose: () => 
 
   const addRecipe = async (r: Recipe) => {
     await addToList(r.ingredients)
-    toast(`${r.emoji} ${r.ingredients.length} Zutaten aus „${r.name}“ hinzugefügt`)
+    toast(`${r.ingredients.length} Zutaten aus „${r.name}“ hinzugefügt`)
   }
 
   return (
@@ -39,9 +38,11 @@ export function RecipesSheet({ open, onClose }: { open: boolean; onClose: () => 
         <ul className="space-y-2">
           {recipes?.map((r) => (
             <li key={r.id} className="flex items-center gap-3 rounded-3xl bg-bg p-3">
-              <div className="grid size-11 shrink-0 place-items-center rounded-2xl bg-surface text-2xl">{r.emoji}</div>
+              <div className="grid size-11 shrink-0 place-items-center rounded-full bg-surface text-ink">
+                <SymbolIcon value={r.emoji} size={20} />
+              </div>
               <div className="min-w-0 flex-1">
-                <h3 className="truncate font-semibold">{r.name}</h3>
+                <h3 className="truncate font-serif text-[17px] font-[600]">{r.name}</h3>
                 <p className="truncate text-sm text-muted">{r.ingredients.map((i) => i.name).join(', ') || 'Keine Zutaten'}</p>
               </div>
               <IconButton label={`${r.name} bearbeiten`} tone="danger" onClick={() => setEditing({ ...r })}>
@@ -88,18 +89,7 @@ function RecipeEditor({ draft, onClose }: { draft: Draft; onClose: () => void })
 
         <div>
           <span className="mb-1.5 block text-sm font-semibold">Symbol</span>
-          <div className="flex flex-wrap gap-1.5">
-            {EMOJIS.map((em) => (
-              <button
-                key={em}
-                type="button"
-                onClick={() => setD({ ...d, emoji: em })}
-                className={`grid size-10 place-items-center rounded-xl text-xl transition ${d.emoji === em ? 'bg-brand-soft ring-2 ring-brand' : 'bg-bg'}`}
-              >
-                {em}
-              </button>
-            ))}
-          </div>
+          <SymbolGrid symbols={RECIPE_SYMBOLS} value={d.emoji} onPick={(key) => key && setD({ ...d, emoji: key })} />
         </div>
 
         <div>
@@ -109,7 +99,7 @@ function RecipeEditor({ draft, onClose }: { draft: Draft; onClose: () => void })
 
         <div className="flex gap-2 pt-1">
           {d.id && (
-            <Button variant="ghost" onClick={remove} className="text-red-600">
+            <Button variant="ghost" onClick={remove} className="text-warn">
               Löschen
             </Button>
           )}

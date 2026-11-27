@@ -1,6 +1,7 @@
 import { useMemo, useState, type FormEvent } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
-import { ChevronDown, Plus, Shapes } from 'lucide-react'
+import { ChevronDown, Plus, Shapes, CircleCheck } from 'lucide-react'
+import { SymbolIcon, symbolIcon } from '../../components/icons'
 import { db, type Todo, newId } from '../../lib/db'
 import { endOfWeek, formatDate, relativeDate } from '../../lib/dates'
 import { Button, CheckCircle, Chips, EmptyState, Field, SectionTitle, Sheet, inputClass } from '../../components/ui'
@@ -52,7 +53,7 @@ export function Todos({ category }: { category: string | null }) {
             type="submit"
             aria-label="To-do hinzufügen"
             disabled={!text.trim()}
-            className="grid size-11 shrink-0 place-items-center rounded-2xl bg-brand text-white shadow-card transition active:scale-95 disabled:opacity-40"
+            className="grid size-11 shrink-0 place-items-center rounded-full bg-brand text-surface transition active:scale-95 disabled:opacity-40"
           >
             <Plus size={22} />
           </button>
@@ -71,7 +72,7 @@ export function Todos({ category }: { category: string | null }) {
               {pickerOpen ? 'Fertig' : chosen ? `Kategorie: ${categoryLabel(chosen)}` : 'Kategorie wählen'}
             </button>
             {pickerOpen && (
-              <div className="rounded-3xl bg-surface p-3 shadow-card">
+              <div className="rounded-3xl bg-surface p-3">
                 <CategoryPicker value={newCategory} onChange={(id) => setNewCategory(id)} />
               </div>
             )}
@@ -81,16 +82,16 @@ export function Todos({ category }: { category: string | null }) {
 
       {todos.length === 0 ? (
         current ? (
-          <EmptyState emoji={current.emoji ?? '🗂️'} title={`Keine To-dos in ${current.name}`} text="To-dos, die du jetzt oben anlegst, landen automatisch in dieser Kategorie." />
+          <EmptyState icon={symbolIcon(current.emoji) ?? Shapes} title={`Keine To-dos in ${current.name}`} text="To-dos, die du jetzt oben anlegst, landen automatisch in dieser Kategorie." />
         ) : (
-          <EmptyState emoji="✅" title="Nichts zu tun?" text="Trage oben ein To-do ein und wähle, bis wann es erledigt sein soll." />
+          <EmptyState icon={CircleCheck} title="Nichts zu tun?" text="Trage oben ein To-do ein und wähle, bis wann es erledigt sein soll." />
         )
       ) : (
         <div className="mt-4 space-y-5 px-5">
           {groups.length === 0 && (
             <div className="rounded-3xl bg-brand-soft px-5 py-6 text-center">
-              <div className="text-3xl">🎉</div>
-              <p className="mt-1 font-semibold text-brand-ink">Alles erledigt!</p>
+              <CircleCheck size={28} strokeWidth={1.75} className="mx-auto text-brand" />
+              <p className="mt-2 font-serif text-xl font-[600] text-ink">Alles erledigt</p>
             </div>
           )}
 
@@ -100,7 +101,7 @@ export function Todos({ category }: { category: string | null }) {
                 <span className={g.id === 'überfällig' ? 'text-warn' : ''}>{GROUP_LABELS[g.id]}</span>
                 <span className="font-normal">· {g.items.length}</span>
               </SectionTitle>
-              <ul className="overflow-hidden rounded-3xl bg-surface shadow-card">
+              <ul className="overflow-hidden rounded-3xl bg-surface">
                 {g.items.map((t) => (
                   <TodoRow key={t.id} todo={t} group={g.id} showCategory={!current} onEdit={() => setEditing(t)} />
                 ))}
@@ -156,7 +157,7 @@ function TodoRow({ todo, group, showCategory, onEdit }: { todo: Todo; group?: Gr
       </button>
       <button type="button" onClick={onEdit} className="flex min-h-14 min-w-0 flex-1 items-center gap-3 py-2 text-left">
         <span className={`min-w-0 flex-1 text-[15px] ${todo.done ? 'text-muted line-through' : 'font-medium'}`}>
-          {catEmoji && <span className="mr-1.5 inline-block">{catEmoji}</span>}
+          {catEmoji && <SymbolIcon value={catEmoji} size={15} className="mr-1.5 -mt-0.5 inline-block text-muted" />}
           {todo.title}
         </span>
         {label && (
@@ -204,7 +205,7 @@ function TodoEditor({ todo, onClose }: { todo: Todo; onClose: () => void }) {
         </div>
 
         <div className="flex gap-2 pt-1">
-          <Button variant="ghost" onClick={remove} className="text-red-600">
+          <Button variant="ghost" onClick={remove} className="text-warn">
             Löschen
           </Button>
           <Button type="submit" disabled={!title.trim()} className="flex-1">

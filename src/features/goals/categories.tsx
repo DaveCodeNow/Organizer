@@ -1,13 +1,16 @@
 import { createContext, useContext, useState } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
-import { Plus } from 'lucide-react'
+import { Plus, Shapes } from 'lucide-react'
 import { db, uid, type GoalCategory } from '../../lib/db'
 import { inputClass } from '../../components/ui'
+import { CATEGORY_SYMBOLS, SymbolGrid, SymbolIcon } from '../../components/icons'
 
 /** Kategorien für Ziele und To-dos (nicht zu verwechseln mit den Supermarkt-Kategorien in lib/categories.ts). */
 
-/** Symbole zur Auswahl für Kategorien (Ziele selbst haben kein Symbol). */
-export const EMOJIS = ['🎯', '🎓', '🎵', '💼', '💻', '🧪', '📚', '🏡', '💰', '🏃', '🧘', '❤️', '🌱', '✈️', '🎨', '🛠️', '🚗', '🍳', '🐾', '⭐']
+/*
+ * Symbole sind Linien-Icons aus components/icons.tsx (Ziele selbst haben kein Symbol).
+ * Gespeichert wird der Schlüssel im Feld `emoji` (Name historisch, ältere Einträge enthalten noch Emojis).
+ */
 
 export interface CategoryInfo extends GoalCategory {
   /** Wie viele Ziele, To-dos und Habits zur Kategorie gehören */
@@ -17,8 +20,32 @@ export interface CategoryInfo extends GoalCategory {
 const norm = (s: string) => s.trim().replace(/^#+/, '').replace(/\s+/g, ' ')
 const same = (a: string, b: string) => a.toLowerCase() === b.toLowerCase()
 
-/** „🎓 Masterprojekt“ bzw. nur der Name, wenn kein Symbol vergeben ist. */
-export const categoryLabel = (c: Pick<GoalCategory, 'name' | 'emoji'>) => (c.emoji ? `${c.emoji} ${c.name}` : c.name)
+/** Name der Kategorie für Fließtext (Platzhalter, Hinweise). Mit Symbol: <CategoryTag>. */
+export const categoryLabel = (c: Pick<GoalCategory, 'name'>) => c.name
+
+/** Symbol + Name, z. B. in Chips und Überschriften. */
+export function CategoryTag({ cat, size = 15 }: { cat: Pick<GoalCategory, 'name' | 'emoji'>; size?: number }) {
+  return (
+    <span className="inline-flex min-w-0 items-center gap-1.5">
+      <SymbolIcon value={cat.emoji} size={size} className="shrink-0" />
+      <span className="truncate">{cat.name}</span>
+    </span>
+  )
+}
+
+/** Knopf, der das Symbol zeigt bzw. zur Wahl eines Symbols einlädt. */
+export function SymbolButton({ value, active, label, onClick }: { value?: string; active: boolean; label: string; onClick: () => void }) {
+  return (
+    <button
+      type="button"
+      aria-label={label}
+      onClick={onClick}
+      className={`grid size-11 shrink-0 place-items-center rounded-full border bg-surface transition ${active ? 'border-brand text-brand' : 'border-line text-ink'}`}
+    >
+      {value ? <SymbolIcon value={value} size={19} /> : <Shapes size={18} className="text-muted" />}
+    </button>
+  )
+}
 
 // ---------- Daten ----------
 
@@ -82,32 +109,9 @@ export function extractHashtag(text: string) {
 
 // ---------- Bausteine ----------
 
-/** Auswahl aus den Symbolen, optional mit „Ohne“. */
-export function EmojiGrid({ value, onPick, allowNone }: { value?: string; onPick: (e: string | undefined) => void; allowNone?: boolean }) {
-  return (
-    <div className="flex flex-wrap gap-1.5">
-      {allowNone && (
-        <button
-          type="button"
-          onClick={() => onPick(undefined)}
-          className={`h-10 rounded-xl px-3 text-sm font-medium transition ${!value ? 'bg-brand-soft text-brand-ink ring-2 ring-brand' : 'bg-bg text-muted'}`}
-        >
-          Ohne
-        </button>
-      )}
-      {EMOJIS.map((em) => (
-        <button
-          key={em}
-          type="button"
-          aria-label={`Symbol ${em}`}
-          onClick={() => onPick(em)}
-          className={`grid size-10 place-items-center rounded-xl text-xl transition ${value === em ? 'bg-brand-soft ring-2 ring-brand' : 'bg-bg'}`}
-        >
-          {em}
-        </button>
-      ))}
-    </div>
-  )
+/** Auswahl aus den Kategorie-Symbolen, optional mit „Ohne“. */
+export function CategorySymbolGrid(props: { value?: string; onPick: (key: string | undefined) => void; allowNone?: boolean }) {
+  return <SymbolGrid symbols={CATEGORY_SYMBOLS} {...props} />
 }
 
 /** Eine Kategorie wählen (oder keine) bzw. direkt eine neue anlegen – für Editoren von Zielen und To-dos. */
@@ -139,7 +143,7 @@ export function CategoryPicker({ value, onChange }: { value: string | undefined;
         </button>
         {cats.map((c) => (
           <button key={c.id} type="button" onClick={() => onChange(c.id, c.emoji)} aria-pressed={value === c.id} className={chip(value === c.id)}>
-            {categoryLabel(c)}
+            <CategoryTag cat={c} />
           </button>
         ))}
         {!creating && (
@@ -153,14 +157,7 @@ export function CategoryPicker({ value, onChange }: { value: string | undefined;
         // Kein <form>: der Picker steckt selbst in einem Formular.
         <div className="space-y-2 rounded-3xl bg-bg p-3">
           <div className="flex gap-2">
-            <button
-              type="button"
-              aria-label="Symbol wählen"
-              onClick={() => setPicking(!picking)}
-              className={`grid size-11 shrink-0 place-items-center rounded-2xl bg-surface text-xl shadow-card ${picking ? 'ring-2 ring-brand' : ''}`}
-            >
-              {emoji ?? <span className="text-sm text-muted">☺︎</span>}
-            </button>
+            <SymbolButton value={emoji} active={picking} label="Symbol wählen" onClick={() => setPicking(!picking)} />
             <input
               autoFocus
               value={name}
@@ -180,13 +177,13 @@ export function CategoryPicker({ value, onChange }: { value: string | undefined;
               aria-label="Kategorie anlegen"
               onClick={create}
               disabled={!norm(name)}
-              className="grid size-11 shrink-0 place-items-center rounded-2xl bg-brand text-white transition active:scale-95 disabled:opacity-40"
+              className="grid size-11 shrink-0 place-items-center rounded-full bg-brand text-surface transition active:scale-95 disabled:opacity-40"
             >
               <Plus size={20} />
             </button>
           </div>
           {picking && (
-            <EmojiGrid
+            <CategorySymbolGrid
               value={emoji}
               allowNone
               onPick={(e) => {

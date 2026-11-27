@@ -44,14 +44,14 @@ export function Confirmer() {
   if (!req) return null
   return (
     <div className="fixed inset-0 z-[70] flex items-end justify-center p-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] sm:items-center">
-      <div className="absolute inset-0 bg-ink/40 animate-[fade-in_.15s_ease-out]" onClick={() => close(false)} />
-      <div role="alertdialog" aria-modal="true" aria-label={req.message} className="relative w-full max-w-sm rounded-3xl bg-surface p-5 shadow-2xl animate-[sheet-in_.22s_cubic-bezier(.2,.9,.3,1)]">
+      <div className="absolute inset-0 bg-ink/30 animate-[fade-in_.15s_ease-out]" onClick={() => close(false)} />
+      <div role="alertdialog" aria-modal="true" aria-label={req.message} className="relative w-full max-w-sm rounded-[2rem] bg-surface p-6 animate-[sheet-in_.22s_cubic-bezier(.2,.9,.3,1)]">
         <p className="text-[15px] leading-snug font-medium">{req.message}</p>
         <div className="mt-5 flex gap-2">
-          <button type="button" autoFocus onClick={() => close(false)} className="h-11 flex-1 rounded-2xl bg-bg px-4 text-[15px] font-semibold transition active:scale-[.98]">
+          <button type="button" autoFocus onClick={() => close(false)} className="h-11 flex-1 rounded-full bg-bg px-4 text-[15px] font-semibold transition active:scale-[.98]">
             Abbrechen
           </button>
-          <button type="button" onClick={() => close(true)} className="h-11 flex-1 rounded-2xl bg-red-600 px-4 text-[15px] font-semibold text-white transition active:scale-[.98]">
+          <button type="button" onClick={() => close(true)} className="h-11 flex-1 rounded-full bg-warn px-4 text-[15px] font-semibold text-surface transition active:scale-[.98]">
             {req.confirmLabel}
           </button>
         </div>

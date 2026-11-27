@@ -67,7 +67,7 @@ export default function App() {
         <Page />
       </main>
 
-      <nav className="fixed inset-x-0 bottom-0 z-40 border-t border-line/70 bg-surface/85 backdrop-blur-xl">
+      <nav className="fixed inset-x-0 bottom-0 z-40 border-t border-line bg-surface/90 backdrop-blur-xl">
         <div className="mx-auto flex max-w-lg px-2 pt-2 pb-[max(0.5rem,env(safe-area-inset-bottom))]">
           {TABS.map(({ id, label, icon: Icon }) => {
             const active = id === tab
@@ -77,17 +77,17 @@ export default function App() {
                 key={id}
                 type="button"
                 onClick={() => go(id)}
-                className={`relative flex flex-1 flex-col items-center gap-1 rounded-2xl py-1.5 text-[11px] font-semibold transition ${
+                className={`relative flex flex-1 flex-col items-center gap-1 rounded-2xl py-1.5 text-[11px] font-medium transition ${
                   active ? 'text-brand' : 'text-muted'
                 }`}
               >
                 <span className={`grid h-8 w-14 place-items-center rounded-full transition ${active ? 'bg-brand-soft' : ''}`}>
-                  <Icon size={21} strokeWidth={active ? 2.4 : 2} />
+                  <Icon size={21} strokeWidth={active ? 2.2 : 1.8} />
                 </span>
                 {label}
                 {badge > 0 && (
                   <span
-                    className={`absolute top-0 left-1/2 ml-3 min-w-5 rounded-full px-1.5 text-[10px] leading-5 text-white ${id === 'goals' ? 'bg-warn' : 'bg-brand'}`}
+                    className={`absolute top-0 left-1/2 ml-3 min-w-5 rounded-full px-1.5 text-[10px] leading-5 text-surface ${id === 'goals' ? 'bg-warn' : 'bg-brand'}`}
                   >
                     {badge}
                   </span>

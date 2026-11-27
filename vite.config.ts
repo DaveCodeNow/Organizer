@@ -25,8 +25,8 @@ export default defineConfig({
         short_name: 'Haushalt',
         description: 'Einkaufsliste, Rezepte und mehr',
         lang: 'de',
-        theme_color: '#f6f7f4',
-        background_color: '#f6f7f4',
+        theme_color: '#f4eee4',
+        background_color: '#f4eee4',
         display: 'standalone',
         icons: [
           { src: 'icon.svg', sizes: 'any', type: 'image/svg+xml', purpose: 'any maskable' },

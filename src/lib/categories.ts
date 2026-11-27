@@ -1,16 +1,18 @@
+import { Carrot, Cookie, Croissant, CupSoda, Drumstick, Milk, ShoppingBasket, Snowflake, Leaf, SprayCan, Wheat } from 'lucide-react'
+
 // Kategorien in typischer Supermarkt-Reihenfolge – bestimmt die Sortierung der Liste.
 export const CATEGORIES = [
-  { id: 'obst', label: 'Obst & Gemüse', emoji: '🥦' },
-  { id: 'brot', label: 'Brot & Backwaren', emoji: '🥖' },
-  { id: 'kuehl', label: 'Kühlregal', emoji: '🧀' },
-  { id: 'fleisch', label: 'Fleisch & Fisch', emoji: '🍗' },
-  { id: 'vorrat', label: 'Vorrat', emoji: '🍝' },
-  { id: 'gewuerze', label: 'Gewürze & Saucen', emoji: '🧂' },
-  { id: 'tk', label: 'Tiefkühl', emoji: '🧊' },
-  { id: 'getraenke', label: 'Getränke', emoji: '🥤' },
-  { id: 'snacks', label: 'Snacks', emoji: '🍫' },
-  { id: 'haushalt', label: 'Haushalt & Drogerie', emoji: '🧻' },
-  { id: 'sonstiges', label: 'Sonstiges', emoji: '🛒' },
+  { id: 'obst', label: 'Obst & Gemüse', icon: Carrot },
+  { id: 'brot', label: 'Brot & Backwaren', icon: Croissant },
+  { id: 'kuehl', label: 'Kühlregal', icon: Milk },
+  { id: 'fleisch', label: 'Fleisch & Fisch', icon: Drumstick },
+  { id: 'vorrat', label: 'Vorrat', icon: Wheat },
+  { id: 'gewuerze', label: 'Gewürze & Saucen', icon: Leaf },
+  { id: 'tk', label: 'Tiefkühl', icon: Snowflake },
+  { id: 'getraenke', label: 'Getränke', icon: CupSoda },
+  { id: 'snacks', label: 'Snacks', icon: Cookie },
+  { id: 'haushalt', label: 'Haushalt & Drogerie', icon: SprayCan },
+  { id: 'sonstiges', label: 'Sonstiges', icon: ShoppingBasket },
 ] as const
 
 export type CategoryId = (typeof CATEGORIES)[number]['id']

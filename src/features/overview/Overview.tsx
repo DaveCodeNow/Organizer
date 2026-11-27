@@ -1,6 +1,6 @@
 import { useState, type ReactNode } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
-import { AlertCircle, ChevronRight, Plus } from 'lucide-react'
+import { AlertCircle, ChevronRight, CircleCheck, Plus, ShoppingBasket, Target, type LucideIcon } from 'lucide-react'
 import { db, type CostKind, type FixedCost } from '../../lib/db'
 import { today } from '../../lib/dates'
 import { navigate } from '../../lib/nav'
@@ -38,14 +38,14 @@ export default function Overview() {
 
   return (
     <>
-      <PageHeader title="Übersicht" subtitle={dateLabel} action={<AccountButton />} />
+      <PageHeader title={<>Dein <em>Zuhause</em></>} subtitle={dateLabel} action={<AccountButton />} />
 
       <div className="space-y-6 px-5">
         {/* Fixkosten gesamt */}
-        <section className="rounded-3xl bg-brand p-5 text-white shadow-card">
-          <p className="text-sm font-medium text-white/80">Fixkosten pro Monat</p>
-          <p className="mt-1 text-[40px] leading-tight font-bold tracking-tight">{euro(total)}</p>
-          <p className="mt-1 text-sm text-white/80">
+        <section className="rounded-[2rem] bg-brand px-6 py-6 text-surface">
+          <p className="text-sm font-medium text-surface/85">Fixkosten pro Monat</p>
+          <p className="mt-2 font-serif text-[44px] leading-[1.1] font-normal tracking-tight">{euro(total)}</p>
+          <p className="mt-2 text-sm text-surface/85">
             {costs.length === 0 ? 'Noch keine Posten erfasst' : `${costs.length} Posten · ${euro(total * 12)} im Jahr`}
           </p>
         </section>
@@ -72,9 +72,9 @@ export default function Overview() {
 
         {/* Kurzinfos aus den anderen Modulen */}
         <section className="grid grid-cols-3 gap-3">
-          <Tile emoji="🛒" value={openItems} label="Artikel offen" onClick={() => navigate('list')} />
-          <Tile emoji="✅" value={dueTodos} label="To-dos fällig" warn={dueTodos > 0} onClick={() => navigate('goals')} />
-          <Tile emoji="🎯" value={goals.length} label={goals.length ? `Ziele · ${goalProgress} %` : 'Ziele aktiv'} onClick={() => navigate('goals')} />
+          <Tile icon={ShoppingBasket} value={openItems} label="Artikel offen" onClick={() => navigate('list')} />
+          <Tile icon={CircleCheck} value={dueTodos} label="To-dos fällig" warn={dueTodos > 0} onClick={() => navigate('goals')} />
+          <Tile icon={Target} value={goals.length} label={goals.length ? `Ziele · ${goalProgress} %` : 'Ziele aktiv'} onClick={() => navigate('goals')} />
         </section>
 
         {/* Verträge */}
@@ -91,7 +91,9 @@ export default function Overview() {
                     onClick={() => edit(k.id)}
                     className="flex w-full items-center gap-3 rounded-3xl border border-dashed border-line p-4 text-left text-muted transition active:scale-[.99]"
                   >
-                    <span className="grid size-11 place-items-center rounded-2xl bg-surface text-xl grayscale">{k.emoji}</span>
+                    <span className="grid size-11 place-items-center rounded-full bg-surface">
+                      <k.icon size={20} />
+                    </span>
                     <span className="flex-1 font-medium">{k.label}-Vertrag hinterlegen</span>
                     <Plus size={20} />
                   </button>
@@ -99,7 +101,7 @@ export default function Overview() {
               }
               const status = contractStatus(c)
               return (
-                <CostCard key={k.id} emoji={k.emoji} cost={c} onClick={() => edit(k.id, c)}>
+                <CostCard key={k.id} icon={k.icon} cost={c} onClick={() => edit(k.id, c)}>
                   {status && <p className={`mt-3 border-t border-line/70 pt-3 text-sm ${status.tone === 'warn' ? 'font-medium text-warn' : 'text-muted'}`}>{status.text}</p>}
                 </CostCard>
               )
@@ -127,7 +129,7 @@ export default function Overview() {
               Miete, Versicherungen, Handy, Abos … – hier eintragen, was jeden Monat (oder jedes Jahr) fällig ist.
             </button>
           ) : (
-            <ul className="overflow-hidden rounded-3xl bg-surface shadow-card">
+            <ul className="overflow-hidden rounded-3xl bg-surface">
               {others.map((c) => {
                 const status = contractStatus(c)
                 return (
@@ -156,21 +158,23 @@ export default function Overview() {
   )
 }
 
-function Tile({ emoji, value, label, warn, onClick }: { emoji: string; value: number; label: string; warn?: boolean; onClick: () => void }) {
+function Tile({ icon: Icon, value, label, warn, onClick }: { icon: LucideIcon; value: number; label: string; warn?: boolean; onClick: () => void }) {
   return (
-    <button type="button" onClick={onClick} className="flex flex-col items-start rounded-3xl bg-surface p-3.5 text-left shadow-card transition active:scale-[.98]">
-      <span className="text-xl">{emoji}</span>
-      <span className={`mt-2 text-2xl font-bold ${warn ? 'text-warn' : ''}`}>{value}</span>
+    <button type="button" onClick={onClick} className="flex flex-col items-start rounded-3xl bg-surface p-4 text-left transition active:scale-[.98]">
+      <Icon size={20} className={warn ? 'text-warn' : 'text-muted'} />
+      <span className={`mt-3 font-serif text-[28px] leading-[1.1] ${warn ? 'text-warn' : ''}`}>{value}</span>
       <span className="text-xs leading-tight text-muted">{label}</span>
     </button>
   )
 }
 
-function CostCard({ emoji, cost, onClick, children }: { emoji: string; cost: FixedCost; onClick: () => void; children?: ReactNode }) {
+function CostCard({ icon: Icon, cost, onClick, children }: { icon: LucideIcon; cost: FixedCost; onClick: () => void; children?: ReactNode }) {
   return (
-    <button type="button" onClick={onClick} className="block w-full rounded-3xl bg-surface p-4 text-left shadow-card transition active:scale-[.99]">
+    <button type="button" onClick={onClick} className="block w-full rounded-3xl bg-surface p-4 text-left transition active:scale-[.99]">
       <div className="flex items-center gap-3">
-        <span className="grid size-11 shrink-0 place-items-center rounded-2xl bg-bg text-xl">{emoji}</span>
+        <span className="grid size-11 shrink-0 place-items-center rounded-full bg-sand text-ink">
+          <Icon size={20} />
+        </span>
         <span className="min-w-0 flex-1">
           <span className="block font-semibold">{cost.name}</span>
           <span className="block truncate text-sm text-muted">{cost.provider || 'Anbieter nicht angegeben'}</span>

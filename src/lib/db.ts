@@ -86,7 +86,7 @@ export interface Habit {
   createdAt: number
 }
 
-/** Frei angelegte Kategorie für Ziele, To-dos und Habits, z. B. „🎓 Masterprojekt“. */
+/** Frei angelegte Kategorie für Ziele, To-dos und Habits, z. B. „Masterprojekt“ mit Symbol (Schlüssel aus components/icons.tsx). */
 export interface GoalCategory {
   id: string
   name: string
@@ -290,7 +290,7 @@ export async function seedIfEmpty() {
   await db.recipes.add({
     id: newId(),
     name: 'Bowl',
-    emoji: '🥗',
+    emoji: 'salad',
     ingredients: [
       ing('Reis', '250 g'),
       ing('Avocado', '1'),

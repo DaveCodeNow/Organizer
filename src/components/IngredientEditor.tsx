@@ -58,7 +58,7 @@ export function IngredientEditor({ value, onChange }: { value: Ingredient[]; onC
             type="button"
             aria-label={`${ing.name} entfernen`}
             onClick={() => onChange(value.filter((_, j) => j !== i))}
-            className="grid size-9 shrink-0 place-items-center rounded-full text-muted transition hover:bg-red-50 hover:text-red-600"
+            className="grid size-9 shrink-0 place-items-center rounded-full text-muted transition hover:bg-warn-soft hover:text-warn"
           >
             <X size={18} />
           </button>
@@ -78,7 +78,7 @@ export function IngredientEditor({ value, onChange }: { value: Ingredient[]; onC
           aria-label="Zutat hinzufügen"
           onClick={add}
           disabled={!draft.trim()}
-          className="grid size-11 shrink-0 place-items-center rounded-2xl bg-brand-soft text-brand-ink transition active:scale-95 disabled:opacity-40"
+          className="grid size-11 shrink-0 place-items-center rounded-full bg-brand-soft text-brand-ink transition active:scale-95 disabled:opacity-40"
         >
           <Plus size={20} />
         </button>

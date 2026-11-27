@@ -1,12 +1,13 @@
 import { useEffect, type ReactNode } from 'react'
-import { Check, X } from 'lucide-react'
+import { Check, X, type LucideIcon } from 'lucide-react'
 
-export function PageHeader({ title, subtitle, action }: { title: string; subtitle?: string; action?: ReactNode }) {
+/** Seitenkopf. Betonte Wörter im Titel als <em> übergeben – sie werden kursiv in der Akzentfarbe gesetzt. */
+export function PageHeader({ title, subtitle, action }: { title: ReactNode; subtitle?: string; action?: ReactNode }) {
   return (
-    <header className="flex items-end justify-between gap-3 px-5 pt-[max(1.5rem,env(safe-area-inset-top))] pb-4">
-      <div>
-        <h1 className="text-[28px] font-bold tracking-tight">{title}</h1>
-        {subtitle && <p className="mt-0.5 text-sm text-muted">{subtitle}</p>}
+    <header className="flex items-end justify-between gap-3 px-5 pt-[max(2rem,calc(env(safe-area-inset-top)+1rem))] pb-5">
+      <div className="min-w-0">
+        <h1 className="font-serif text-[34px] leading-[1.1] font-normal tracking-tight">{title}</h1>
+        {subtitle && <p className="mt-1.5 text-sm text-muted">{subtitle}</p>}
       </div>
       {action}
     </header>
@@ -25,9 +26,9 @@ export function IconButton({
   tone?: 'plain' | 'brand' | 'danger'
 }) {
   const tones = {
-    plain: 'bg-surface text-ink shadow-card hover:bg-white',
-    brand: 'bg-brand text-white shadow-card hover:brightness-105',
-    danger: 'text-muted hover:bg-red-50 hover:text-red-600',
+    plain: 'border border-line bg-surface text-ink hover:bg-bg',
+    brand: 'bg-brand text-surface hover:brightness-105',
+    danger: 'text-muted hover:bg-warn-soft hover:text-warn',
   }
   return (
     <button
@@ -58,16 +59,16 @@ export function Button({
   className?: string
 }) {
   const variants = {
-    primary: 'bg-brand text-white hover:brightness-105',
+    primary: 'bg-brand text-surface hover:brightness-105',
     secondary: 'bg-brand-soft text-brand-ink hover:brightness-[.98]',
-    ghost: 'text-muted hover:bg-black/5',
+    ghost: 'text-muted hover:bg-bg',
   }
   return (
     <button
       type={type}
       onClick={onClick}
       disabled={disabled}
-      className={`inline-flex h-11 items-center justify-center gap-2 rounded-2xl px-4 text-[15px] font-semibold transition active:scale-[.98] disabled:opacity-40 ${variants[variant]} ${className}`}
+      className={`inline-flex h-11 items-center justify-center gap-2 rounded-full px-5 text-[15px] font-semibold transition active:scale-[.98] disabled:opacity-40 ${variants[variant]} ${className}`}
     >
       {children}
     </button>
@@ -90,14 +91,15 @@ export function Sheet({ open, onClose, title, children }: { open: boolean; onClo
   if (!open) return null
   return (
     <div className="fixed inset-0 z-50 flex items-end justify-center sm:items-center">
-      <div className="absolute inset-0 bg-ink/30 backdrop-blur-[2px] animate-[fade-in_.2s_ease-out]" onClick={onClose} />
+      <div className="absolute inset-0 bg-ink/25 backdrop-blur-[2px] animate-[fade-in_.2s_ease-out]" onClick={onClose} />
       <div
         role="dialog"
         aria-label={title}
-        className="relative flex max-h-[90dvh] w-full max-w-lg flex-col rounded-t-3xl bg-surface shadow-2xl animate-[sheet-in_.28s_cubic-bezier(.2,.9,.3,1)] sm:rounded-3xl"
+        className="relative flex max-h-[90dvh] w-full max-w-lg flex-col rounded-t-[2rem] bg-surface animate-[sheet-in_.28s_cubic-bezier(.2,.9,.3,1)] sm:rounded-3xl"
       >
-        <div className="flex items-center justify-between px-5 pt-4 pb-2">
-          <h2 className="text-lg font-bold">{title}</h2>
+        <div className="mx-auto mt-2.5 h-1 w-10 rounded-full bg-line" aria-hidden />
+        <div className="flex items-center justify-between px-5 pt-2 pb-2">
+          <h2 className="font-serif text-[22px] leading-[1.1] font-[600]">{title}</h2>
           <IconButton label="Schließen" onClick={onClose} tone="danger">
             <X size={20} />
           </IconButton>
@@ -108,23 +110,27 @@ export function Sheet({ open, onClose, title, children }: { open: boolean; onClo
   )
 }
 
-export function EmptyState({ emoji, title, text, children }: { emoji: string; title: string; text: string; children?: ReactNode }) {
+export function EmptyState({ icon: Icon, title, text, children }: { icon: LucideIcon; title: string; text: string; children?: ReactNode }) {
   return (
-    <div className="mx-5 mt-8 flex flex-col items-center rounded-3xl border border-dashed border-line px-6 py-12 text-center">
-      <div className="mb-3 text-5xl">{emoji}</div>
-      <h3 className="text-lg font-semibold">{title}</h3>
+    <div className="mx-5 mt-8 flex flex-col items-center rounded-3xl bg-surface/60 px-6 py-12 text-center">
+      <div className="mb-4 grid size-16 place-items-center rounded-full bg-sand text-brand">
+        <Icon size={28} strokeWidth={1.75} />
+      </div>
+      <h3 className="font-serif text-xl leading-[1.1] font-[600]">{title}</h3>
       <p className="mt-1 max-w-xs text-sm text-muted">{text}</p>
       {children && <div className="mt-5">{children}</div>}
     </div>
   )
 }
 
-/** Grundstil für Eingabefelder ohne Höhe/Breite – für Textareas, Selects o. Ä. mit eigener Größe. */
-export const fieldClass =
-  'rounded-2xl border border-line bg-bg px-4 text-[15px] outline-none transition placeholder:text-muted/70 focus:border-brand focus:bg-surface focus:ring-4 focus:ring-brand/10'
+const fieldBase =
+  'border border-line bg-bg px-4 text-[15px] outline-none transition placeholder:text-muted focus:border-brand focus:bg-surface focus:ring-4 focus:ring-brand/10'
 
-/** Standard-Eingabefeld. Achtung: setzt w-full – feste Breiten über einen Wrapper lösen, nicht per zusätzlicher w-Klasse. */
-export const inputClass = `h-11 w-full ${fieldClass}`
+/** Grundstil für Eingabefelder ohne Höhe/Breite – für Textareas, Selects o. Ä. mit eigener Größe. */
+export const fieldClass = `rounded-2xl ${fieldBase}`
+
+/** Standard-Eingabefeld in Pillenform. Achtung: setzt w-full – feste Breiten über einen Wrapper lösen, nicht per zusätzlicher w-Klasse. */
+export const inputClass = `h-11 w-full rounded-full ${fieldBase}`
 
 /** Beschriftetes Formularfeld. */
 export function Field({ label, hint, children }: { label: string; hint?: ReactNode; children: ReactNode }) {
@@ -148,13 +154,13 @@ export function Segmented<T extends string>({
   onChange: (v: T) => void
 }) {
   return (
-    <div className="flex rounded-2xl bg-line/60 p-1">
+    <div className="flex rounded-full bg-sand/70 p-1">
       {options.map((o) => (
         <button
           key={o.id}
           type="button"
           onClick={() => onChange(o.id)}
-          className={`h-9 flex-1 rounded-xl text-sm font-semibold transition ${o.id === value ? 'bg-surface text-ink shadow-card' : 'text-muted'}`}
+          className={`h-9 flex-1 rounded-full text-sm font-semibold transition ${o.id === value ? 'bg-surface text-ink' : 'text-ink/75'}`}
         >
           {o.label}
         </button>
@@ -170,7 +176,7 @@ export function Chips<T extends string>({
   onChange,
 }: {
   value: T | undefined
-  options: ReadonlyArray<{ id: T; label: string }>
+  options: ReadonlyArray<{ id: T; label: ReactNode }>
   onChange: (v: T) => void
 }) {
   return (
@@ -180,7 +186,7 @@ export function Chips<T extends string>({
           key={o.id}
           type="button"
           onClick={() => onChange(o.id)}
-          className={`h-9 shrink-0 rounded-full border px-3.5 text-sm font-medium transition active:scale-95 ${
+          className={`flex h-9 shrink-0 items-center gap-1.5 rounded-full border px-3.5 text-sm font-medium transition active:scale-95 ${
             o.id === value ? 'border-brand bg-brand-soft text-brand-ink' : 'border-line bg-surface text-muted'
           }`}
         >
@@ -196,7 +202,7 @@ export function CheckCircle({ checked, small }: { checked: boolean; small?: bool
   return (
     <span
       className={`grid shrink-0 place-items-center rounded-full border-2 transition ${small ? 'size-5' : 'size-6'} ${
-        checked ? 'border-brand bg-brand text-white animate-[pop_.25s_ease-out]' : 'border-line'
+        checked ? 'border-brand bg-brand text-surface animate-[pop_.25s_ease-out]' : 'border-caramel'
       }`}
     >
       {checked && <Check size={small ? 12 : 14} strokeWidth={3} />}
@@ -208,7 +214,7 @@ export function CheckCircle({ checked, small }: { checked: boolean; small?: bool
 export function SectionTitle({ children, action }: { children: ReactNode; action?: ReactNode }) {
   return (
     <div className="mb-2 flex min-h-8 items-center justify-between gap-3">
-      <h2 className="flex items-center gap-2 text-sm font-semibold text-muted">{children}</h2>
+      <h2 className="flex items-center gap-2 font-serif text-[19px] leading-[1.1] font-[600]">{children}</h2>
       {action}
     </div>
   )

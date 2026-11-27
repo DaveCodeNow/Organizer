@@ -40,7 +40,7 @@ export function TemplatesSheet({ open, onClose }: { open: boolean; onClose: () =
           {templates?.map((t) => (
             <li key={t.id} className="flex items-center gap-3 rounded-3xl bg-bg p-3 pl-4">
               <div className="min-w-0 flex-1">
-                <h3 className="truncate font-semibold">{t.name}</h3>
+                <h3 className="truncate font-serif text-[17px] font-[600]">{t.name}</h3>
                 <p className="truncate text-sm text-muted">
                   {t.items.length} Produkte · {t.items.map((i) => i.name).join(', ')}
                 </p>
@@ -90,7 +90,7 @@ function TemplateEditor({ draft, onClose }: { draft: Draft; onClose: () => void 
         </div>
         <div className="flex gap-2 pt-1">
           {d.id && (
-            <Button variant="ghost" onClick={remove} className="text-red-600">
+            <Button variant="ghost" onClick={remove} className="text-warn">
               Löschen
             </Button>
           )}

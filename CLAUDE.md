@@ -37,8 +37,12 @@ UI-Texte sind auf Deutsch.
 - `src/lib/categories.ts` – Supermarkt-Kategorien + automatische Zuordnung per Schlüsselwort
 
 ## Design
-- Hell, ruhig, modern: Hintergrund `bg`, weiße Karten `surface` mit `shadow-card`, große Rundungen (`rounded-3xl` Karten, `rounded-2xl` Inputs/Buttons)
-- Akzentfarbe Grün (`brand`, `brand-soft`, `brand-ink`) – keine neuen Farben ohne Token
+- Charakter: warm, ruhig, wohnlich – eher gemütliches Zuhause als Produktivitäts-Tool. Viel Luft, weiche Formen, gedeckte Naturtöne. Keine grellen Töne, keine Verläufe, keine Schatten, **keine Emojis**.
+- Farben nur über Tokens in `src/index.css`: `bg` (Creme), `surface` (Elfenbein, auch Text auf Akzent), `sand` (= `brand-soft`, gedämpfte Hervorhebung), `ink`, `muted`, `line`, `brand` (Salbeigrün, einzige kräftige Farbe, pro Ansicht nur ein dominanter Einsatz), `caramel` (dezente Markierungen), `warn`/`warn-soft` (Terrakotta, sparsam: Warnungen, Löschen). Kein `text-muted` auf `sand` (Kontrast < 4.5).
+- Tiefe über Farbabstufung (Creme → Elfenbein) statt Schatten; feine Linien in `line`.
+- Schrift: `font-serif` (Fraunces, 400 oder `font-[600]`, Zeilenhöhe ~1.1) nur für Überschriften/Titel; sonst DM Sans (400/500/700 – `font-semibold` ist auf 500 gemappt). Betonte Wörter in Überschriften als `<em>` → kursiv in Akzentfarbe (PageHeader-`title` nimmt ReactNode).
+- Formen: Karten `rounded-3xl` (= 1.75rem), Buttons/Inputs/Chips in Pillenform (`rounded-full`), Textareas über `fieldClass`.
+- Icons: lucide-react, Linienstil. Symbole von Kategorien/Rezepten über `components/icons.tsx` (`SymbolIcon`, `SymbolGrid`); im Datenfeld `emoji` steht ein Symbol-Schlüssel, alte Emoji-Werte werden dort auf Icons abgebildet.
 - Mobile first: max. Breite `max-w-lg`, Bottom-Tab-Bar, Bottom Sheets statt Modals, Safe-Area-Insets beachten
 - Touch-Ziele mindestens 40px
 - Keine Browser-Dialoge (`confirm`, `alert`, `prompt`) – die werden in eingebetteten Vorschauen unterdrückt. Rückfragen über `confirmDialog()` aus `src/components/Confirm.tsx`.

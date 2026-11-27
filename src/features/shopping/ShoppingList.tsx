@@ -1,6 +1,7 @@
 import { useMemo, useState, type FormEvent, type ReactNode } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
-import { BookOpen, Bookmark, MoreHorizontal, Plus, Trash2, BookmarkPlus, ListX, Eraser } from 'lucide-react'
+import { BookOpen, Bookmark, MoreHorizontal, Plus, Trash2, BookmarkPlus, ListX, Eraser, ShoppingBasket, CircleCheck } from 'lucide-react'
+import { SymbolIcon } from '../../components/icons'
 import { addToList, clearChecked, clearList, db, deleteItem, saveListAsTemplate, toggleItem, type ListItem, type Recipe } from '../../lib/db'
 import { CATEGORIES } from '../../lib/categories'
 import { parseEntry } from '../../lib/parse'
@@ -42,13 +43,13 @@ export default function ShoppingList() {
 
   const addRecipe = async (r: Recipe) => {
     await addToList(r.ingredients)
-    toast(`${r.emoji} ${r.ingredients.length} Zutaten aus „${r.name}“ hinzugefügt`)
+    toast(`${r.ingredients.length} Zutaten aus „${r.name}“ hinzugefügt`)
   }
 
   return (
     <>
       <PageHeader
-        title="Einkauf"
+        title={<>Was <em>fehlt</em>?</>}
         subtitle={total === 0 ? 'Was brauchst du?' : `${done.length} von ${total} im Wagen`}
         action={
           <div className="flex gap-2">
@@ -71,7 +72,7 @@ export default function ShoppingList() {
         </div>
       )}
 
-      <form onSubmit={submit} className="sticky top-0 z-30 bg-bg/90 px-5 py-2 backdrop-blur-lg">
+      <form onSubmit={submit} className="sticky top-0 z-30 bg-bg/90 px-5 py-2.5 backdrop-blur-lg">
         <div className="flex gap-2">
           <input
             value={text}
@@ -85,7 +86,7 @@ export default function ShoppingList() {
             type="submit"
             aria-label="Hinzufügen"
             disabled={!text.trim()}
-            className="grid size-11 shrink-0 place-items-center rounded-2xl bg-brand text-white shadow-card transition active:scale-95 disabled:opacity-40"
+            className="grid size-11 shrink-0 place-items-center rounded-full bg-brand text-surface transition active:scale-95 disabled:opacity-40"
           >
             <Plus size={22} />
           </button>
@@ -94,16 +95,16 @@ export default function ShoppingList() {
 
       {recipes && recipes.length > 0 && (
         <div className="mt-2">
-          <p className="px-5 pb-2 text-xs font-semibold tracking-wide text-muted uppercase">Rezept hinzufügen</p>
+          <p className="px-5 pb-2 text-xs font-medium tracking-wider text-muted uppercase">Rezept hinzufügen</p>
           <div className="flex gap-2 overflow-x-auto px-5 pb-1 [scrollbar-width:none]">
             {recipes.map((r) => (
               <button
                 key={r.id}
                 type="button"
                 onClick={() => addRecipe(r)}
-                className="flex shrink-0 items-center gap-1.5 rounded-full border border-line bg-surface px-3.5 py-2 text-sm font-medium shadow-card transition active:scale-95"
+                className="flex shrink-0 items-center gap-1.5 rounded-full border border-line bg-surface px-3.5 py-2 text-sm font-medium transition active:scale-95"
               >
-                <span>{r.emoji}</span>
+                <SymbolIcon value={r.emoji} size={16} className="text-muted" />
                 {r.name}
                 <Plus size={14} className="text-brand" />
               </button>
@@ -113,23 +114,23 @@ export default function ShoppingList() {
       )}
 
       {total === 0 ? (
-        <EmptyState emoji="🛒" title="Deine Liste ist leer" text="Füge oben Produkte hinzu, tippe auf ein Rezept oder lade eine gespeicherte Liste." />
+        <EmptyState icon={ShoppingBasket} title="Deine Liste ist leer" text="Füge oben Produkte hinzu, tippe auf ein Rezept oder lade eine gespeicherte Liste." />
       ) : (
         <div className="mt-5 space-y-5 px-5">
           {open.length === 0 && (
             <div className="rounded-3xl bg-brand-soft px-5 py-6 text-center">
-              <div className="text-3xl">🎉</div>
-              <p className="mt-1 font-semibold text-brand-ink">Alles erledigt!</p>
+              <CircleCheck size={28} strokeWidth={1.75} className="mx-auto text-brand" />
+              <p className="mt-2 font-serif text-xl font-[600] text-ink">Alles erledigt</p>
             </div>
           )}
 
           {groups.map((g) => (
             <section key={g.id}>
-              <h2 className="mb-2 flex items-center gap-2 text-sm font-semibold text-muted">
-                <span>{g.emoji}</span>
+              <h2 className="mb-2.5 flex items-center gap-2 font-serif text-[17px] leading-[1.1] font-[600]">
+                <g.icon size={17} className="text-muted" />
                 {g.label}
               </h2>
-              <ul className="overflow-hidden rounded-3xl bg-surface shadow-card">
+              <ul className="overflow-hidden rounded-3xl bg-surface">
                 {g.items.map((i) => (
                   <Row key={i.id} item={i} />
                 ))}
@@ -140,7 +141,7 @@ export default function ShoppingList() {
           {done.length > 0 && (
             <section>
               <div className="mb-2 flex items-center justify-between">
-                <h2 className="text-sm font-semibold text-muted">Im Wagen · {done.length}</h2>
+                <h2 className="font-serif text-[17px] leading-[1.1] font-[600] text-muted">Im Wagen · {done.length}</h2>
                 <button type="button" onClick={() => clearChecked()} className="text-sm font-semibold text-brand">
                   Entfernen
                 </button>
@@ -202,7 +203,7 @@ function Row({ item }: { item: ListItem }) {
         <CheckCircle checked={item.checked} />
         <span className={`flex-1 text-[15px] transition ${item.checked ? 'text-muted line-through' : 'font-medium'}`}>{item.name}</span>
         {item.quantity && (
-          <span className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${item.checked ? 'text-muted' : 'bg-bg text-muted'}`}>
+          <span className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${item.checked ? 'text-muted' : 'bg-bg text-ink/80'}`}>
             {item.quantity}
           </span>
         )}
@@ -220,8 +221,8 @@ function MenuItem({ icon, label, onClick, danger, disabled }: { icon: ReactNode;
       type="button"
       onClick={onClick}
       disabled={disabled}
-      className={`flex w-full items-center gap-3 rounded-2xl px-3 py-3.5 text-left text-[15px] font-medium transition hover:bg-bg disabled:opacity-35 ${
-        danger ? 'text-red-600' : ''
+      className={`flex w-full items-center gap-3 rounded-full px-4 py-3.5 text-left text-[15px] font-medium transition hover:bg-bg disabled:opacity-35 ${
+        danger ? 'text-warn' : ''
       }`}
     >
       {icon}

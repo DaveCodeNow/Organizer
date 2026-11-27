@@ -1,10 +1,11 @@
+import { Flame, Wifi, Zap, type LucideIcon } from 'lucide-react'
 import type { ContractKind, FixedCost, Interval, Notice } from '../../lib/db'
 import { daysUntil, formatDate, fromISO, toISO } from '../../lib/dates'
 
-export const CONTRACTS: ReadonlyArray<{ id: ContractKind; label: string; emoji: string }> = [
-  { id: 'strom', label: 'Strom', emoji: '⚡' },
-  { id: 'gas', label: 'Gas', emoji: '🔥' },
-  { id: 'internet', label: 'Internet', emoji: '📶' },
+export const CONTRACTS: ReadonlyArray<{ id: ContractKind; label: string; icon: LucideIcon }> = [
+  { id: 'strom', label: 'Strom', icon: Zap },
+  { id: 'gas', label: 'Gas', icon: Flame },
+  { id: 'internet', label: 'Internet', icon: Wifi },
 ]
 
 export const INTERVALS: ReadonlyArray<{ id: Interval; label: string; per: string; perMonth: number }> = [
