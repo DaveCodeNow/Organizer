@@ -4,6 +4,8 @@ import tailwindcss from '@tailwindcss/vite'
 import { VitePWA } from 'vite-plugin-pwa'
 
 export default defineConfig({
+  // Auf GitHub Pages läuft die App unter /<repo-name>/ (setzt der Deploy-Workflow), lokal unter /.
+  base: process.env.BASE_PATH ?? '/',
   // Unter Windows hat die normale Dateiüberwachung schnell aufeinanderfolgende Änderungen verpasst
   // (Dev-Server lieferte veraltete Module aus). Polling ist etwas teurer, aber zuverlässig.
   server: {
@@ -26,7 +28,6 @@ export default defineConfig({
         theme_color: '#f6f7f4',
         background_color: '#f6f7f4',
         display: 'standalone',
-        start_url: '/',
         icons: [
           { src: 'icon.svg', sizes: 'any', type: 'image/svg+xml', purpose: 'any maskable' },
         ],

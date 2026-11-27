@@ -1,7 +1,7 @@
 import { useMemo, useState, type FormEvent } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { ChevronDown, Plus, Shapes } from 'lucide-react'
-import { db, type Todo } from '../../lib/db'
+import { db, type Todo, newId } from '../../lib/db'
 import { endOfWeek, formatDate, relativeDate } from '../../lib/dates'
 import { Button, CheckCircle, Chips, EmptyState, Field, SectionTitle, Sheet, inputClass } from '../../components/ui'
 import { GROUPS, GROUP_LABELS, HORIZONS, groupOf, horizonOf, type GroupId } from './horizons'
@@ -38,7 +38,7 @@ export function Todos({ category }: { category: string | null }) {
     const { title, category: hashtag } = extractHashtag(text)
     if (!title) return
     const cat = (hashtag && (await createCategory(hashtag))) || chosen?.id || current?.id
-    await db.todos.add({ title, due, done: false, category: cat, createdAt: Date.now() } as Todo)
+    await db.todos.add({ id: newId(), title, due, done: false, category: cat, createdAt: Date.now() } as Todo)
     setText('')
     setPickerOpen(false)
   }

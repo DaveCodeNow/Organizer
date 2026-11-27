@@ -7,6 +7,7 @@ import { navigate } from '../../lib/nav'
 import { PageHeader, SectionTitle } from '../../components/ui'
 import { CONTRACTS, INTERVALS, contractStatus, euro, perMonth } from './costs'
 import { CostEditor, toDraft } from './CostEditor'
+import { AccountButton } from '../account/AccountButton'
 
 /** Haushaltsübersicht: Fixkosten, Verträge und das Wichtigste aus den anderen Modulen. */
 export default function Overview() {
@@ -37,7 +38,7 @@ export default function Overview() {
 
   return (
     <>
-      <PageHeader title="Übersicht" subtitle={dateLabel} />
+      <PageHeader title="Übersicht" subtitle={dateLabel} action={<AccountButton />} />
 
       <div className="space-y-6 px-5">
         {/* Fixkosten gesamt */}

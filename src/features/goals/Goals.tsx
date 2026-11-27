@@ -1,7 +1,7 @@
 import { useState, type FormEvent } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { Check, Pencil, Plus, X } from 'lucide-react'
-import { db, uid, type Goal, type SubGoal } from '../../lib/db'
+import { db, uid, type Goal, type SubGoal, newId } from '../../lib/db'
 import { formatDate } from '../../lib/dates'
 import { Button, CheckCircle, EmptyState, Field, IconButton, SectionTitle, Sheet, fieldClass, inputClass } from '../../components/ui'
 import { confirmDialog } from '../../components/Confirm'
@@ -9,7 +9,7 @@ import { toast } from '../../components/Toast'
 import { CategoryPicker, categoryLabel, findCategory, useCategories } from './categories'
 
 // Ziele haben kein eigenes Symbol – Symbole gehören zu den Kategorien (sichtbar in den Gruppen-Überschriften).
-type Draft = { id?: number; title: string; category?: string; note: string; targetDate: string; subgoals: SubGoal[]; done: boolean }
+type Draft = { id?: string; title: string; category?: string; note: string; targetDate: string; subgoals: SubGoal[]; done: boolean }
 
 const progress = (g: Pick<Goal, 'subgoals'>) => (g.subgoals.length ? g.subgoals.filter((s) => s.done).length / g.subgoals.length : 0)
 
@@ -226,7 +226,7 @@ function GoalEditor({ draft, onClose }: { draft: Draft; onClose: () => void }) {
       done: d.done,
     }
     if (d.id) await db.goals.update(d.id, data)
-    else await db.goals.add({ ...data, createdAt: Date.now() } as Goal)
+    else await db.goals.add({ ...data, id: newId(), createdAt: Date.now() } as Goal)
     onClose()
   }
 

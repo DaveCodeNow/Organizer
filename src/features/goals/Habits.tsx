@@ -1,7 +1,7 @@
 import { useState, type FormEvent } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { Check, Pencil, Plus } from 'lucide-react'
-import { db, type Habit, type HabitFrequency } from '../../lib/db'
+import { db, type Habit, type HabitFrequency, newId } from '../../lib/db'
 import { addDays, startOfWeek, today, weekDays } from '../../lib/dates'
 import { Button, Chips, EmptyState, Field, IconButton, SectionTitle, Segmented, Sheet, inputClass } from '../../components/ui'
 import { confirmDialog } from '../../components/Confirm'
@@ -46,7 +46,7 @@ function weeklyStreak(log: string[], target: number) {
   return n
 }
 
-type Draft = { id?: number; title: string; frequency: HabitFrequency; perWeek: number; category?: string }
+type Draft = { id?: string; title: string; frequency: HabitFrequency; perWeek: number; category?: string }
 
 export function Habits({ category }: { category: string | null }) {
   const all = useLiveQuery(() => db.habits.toArray(), [])
@@ -176,7 +176,7 @@ function HabitEditor({ draft, onClose }: { draft: Draft; onClose: () => void }) 
     if (!d.title.trim()) return
     const data = { title: d.title.trim(), frequency: d.frequency, perWeek: d.frequency === 'weekly' ? d.perWeek : undefined, category: d.category }
     if (d.id) await db.habits.update(d.id, data)
-    else await db.habits.add({ ...data, log: [] as string[], createdAt: Date.now() } as Habit)
+    else await db.habits.add({ ...data, id: newId(), log: [] as string[], createdAt: Date.now() } as Habit)
     onClose()
   }
 

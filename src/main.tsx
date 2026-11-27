@@ -3,9 +3,9 @@ import { createRoot } from 'react-dom/client'
 import '@fontsource-variable/inter'
 import './index.css'
 import App from './App'
-import { seedIfEmpty } from './lib/db'
+import { initSync } from './lib/sync'
 
-seedIfEmpty()
+initSync()
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>

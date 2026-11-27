@@ -1,13 +1,13 @@
 import { useState, type FormEvent } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { Download, Pencil, Plus } from 'lucide-react'
-import { addToList, db, type Ingredient, type Template } from '../../lib/db'
+import { addToList, db, type Ingredient, type Template, newId } from '../../lib/db'
 import { Button, Field, IconButton, Sheet, inputClass } from '../../components/ui'
 import { confirmDialog } from '../../components/Confirm'
 import { IngredientEditor } from '../../components/IngredientEditor'
 import { toast } from '../../components/Toast'
 
-type Draft = { id?: number; name: string; items: Ingredient[] }
+type Draft = { id?: string; name: string; items: Ingredient[] }
 
 /** Gespeicherte Listen verwalten und laden – öffnet sich aus der Einkaufsliste. */
 export function TemplatesSheet({ open, onClose }: { open: boolean; onClose: () => void }) {
@@ -67,7 +67,7 @@ function TemplateEditor({ draft, onClose }: { draft: Draft; onClose: () => void 
     if (!d.name.trim()) return
     const data = { name: d.name.trim(), items: d.items.filter((i) => i.name.trim()) }
     if (d.id) await db.templates.update(d.id, data)
-    else await db.templates.add({ ...data, createdAt: Date.now() } as Template)
+    else await db.templates.add({ ...data, id: newId(), createdAt: Date.now() } as Template)
     onClose()
   }
 

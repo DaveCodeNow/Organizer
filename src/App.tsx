@@ -4,11 +4,14 @@ import { useLiveQuery } from 'dexie-react-hooks'
 import { db } from './lib/db'
 import { today } from './lib/dates'
 import { onNavigate } from './lib/nav'
+import { supabase } from './lib/supabase'
+import { useSync } from './lib/sync'
 import { Toaster } from './components/Toast'
 import { Confirmer } from './components/Confirm'
 import Overview from './features/overview/Overview'
 import ShoppingList from './features/shopping/ShoppingList'
 import GoalsTodos from './features/goals/GoalsTodos'
+import AuthScreen from './features/account/AuthScreen'
 
 // Neue Module (z. B. Putzplan) bekommen hier einfach einen weiteren Tab.
 const TABS = [
@@ -45,6 +48,18 @@ export default function App() {
   }
 
   useEffect(() => onNavigate((id) => isTab(id) && go(id)), [])
+
+  // Mit Supabase-Konfiguration ist eine Anmeldung nötig; ohne läuft die App rein lokal.
+  const { session } = useSync()
+  if (supabase && session === undefined) return null
+  if (supabase && !session)
+    return (
+      <>
+        <AuthScreen />
+        <Toaster />
+        <Confirmer />
+      </>
+    )
 
   return (
     <div className="mx-auto min-h-dvh max-w-lg pb-[calc(5.5rem+env(safe-area-inset-bottom))]">

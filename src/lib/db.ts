@@ -8,13 +8,13 @@ export interface Ingredient {
 }
 
 export interface ListItem extends Ingredient {
-  id: number
+  id: string
   checked: boolean
   createdAt: number
 }
 
 export interface Recipe {
-  id: number
+  id: string
   name: string
   emoji: string
   ingredients: Ingredient[]
@@ -22,7 +22,7 @@ export interface Recipe {
 }
 
 export interface Template {
-  id: number
+  id: string
   name: string
   items: Ingredient[]
   createdAt: number
@@ -38,7 +38,7 @@ export type Notice = '2w' | '4w' | '1m' | '3m' | '6m'
 
 /** Fixkosten-Posten. Strom, Gas und Internet gibt es je einmal und sie bringen Vertragsdetails mit. */
 export interface FixedCost {
-  id: number
+  id: string
   kind: CostKind
   name: string
   /** Betrag in Euro pro `interval` */
@@ -57,7 +57,7 @@ export interface FixedCost {
 // ---------- Ziele & To-dos ----------
 
 export interface Todo {
-  id: number
+  id: string
   title: string
   /** Fälligkeit YYYY-MM-DD; leer = ohne Termin */
   due?: string
@@ -74,7 +74,7 @@ export type HabitFrequency = 'daily' | 'weekly'
 
 /** Gewohnheit, die täglich oder x-mal pro Woche abgehakt wird. */
 export interface Habit {
-  id: number
+  id: string
   title: string
   frequency: HabitFrequency
   /** Nur bei weekly: Ziel pro Woche (1–7) */
@@ -109,7 +109,7 @@ export interface TagMeta {
 }
 
 export interface Goal {
-  id: number
+  id: string
   title: string
   /** Veraltet: Ziele haben kein Symbol mehr, Symbole gehören zu Kategorien. Wird nicht mehr angezeigt. */
   emoji?: string
@@ -194,8 +194,43 @@ db.version(6).stores({
   habits: '++id, category',
 })
 
-/** Kurze, eindeutige ID für eingebettete Objekte (crypto.randomUUID fehlt bei http im WLAN). */
+// v7/v8: Zahlen-IDs (++id) → zufällige Text-IDs, damit Einträge von mehreren Geräten beim Sync nicht kollidieren.
+// IndexedDB kann den Primärschlüssel nicht ändern, daher in zwei Schritten über Zwischentabellen (*_v7).
+const RENUMBERED = {
+  listItems: 'id, name, category',
+  recipes: 'id, name',
+  templates: 'id, name',
+  fixedCosts: 'id, kind',
+  todos: 'id, due, category',
+  goals: 'id, category',
+  habits: 'id, category',
+} as const
+const names = Object.keys(RENUMBERED) as Array<keyof typeof RENUMBERED>
+
+db.version(7)
+  .stores(Object.fromEntries(names.flatMap((n) => [[n, null], [`${n}_v7`, RENUMBERED[n]]])))
+  .upgrade(async (tx) => {
+    for (const n of names) {
+      const rows = await tx.table(n).toArray()
+      await tx.table(`${n}_v7`).bulkAdd(rows.map((r) => ({ ...r, id: newId() })))
+    }
+  })
+
+db.version(8)
+  .stores(Object.fromEntries(names.flatMap((n) => [[`${n}_v7`, null], [n, RENUMBERED[n]]])))
+  .upgrade(async (tx) => {
+    for (const n of names) await tx.table(n).bulkAdd(await tx.table(`${n}_v7`).toArray())
+  })
+
+/** Weltweit eindeutige ID für Datensätze (crypto.randomUUID fehlt bei http im WLAN, getRandomValues nicht). */
+export function newId() {
+  const b = crypto.getRandomValues(new Uint8Array(16))
+  return Array.from(b, (x) => x.toString(16).padStart(2, '0')).join('')
+}
+
+/** Kurze, eindeutige ID für eingebettete Objekte (Unterziele). */
 export const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 8)
+
 
 const norm = (s: string) => s.trim().toLowerCase()
 
@@ -217,27 +252,30 @@ export async function addToList(items: Array<Partial<Ingredient> & { name: strin
         Object.assign(match, { checked: false, quantity: mergedQty })
       } else {
         const item = {
+          id: newId(),
           name,
           quantity,
           category: raw.category ?? guessCategory(name),
           checked: false,
           createdAt: Date.now(),
         }
-        const id = await db.listItems.add(item as ListItem)
-        existing.push({ ...item, id: id as number })
+        await db.listItems.add(item)
+        existing.push(item)
       }
     }
   })
 }
 
 export const toggleItem = (item: ListItem) => db.listItems.update(item.id, { checked: !item.checked })
-export const deleteItem = (id: number) => db.listItems.delete(id)
+export const deleteItem = (id: string) => db.listItems.delete(id)
 export const clearChecked = () => db.listItems.filter((i) => i.checked).delete()
-export const clearList = () => db.listItems.clear()
+// Nicht clear(): das löst keine Hooks aus, der Sync bekäme das Löschen nicht mit.
+export const clearList = () => db.listItems.toCollection().delete()
 
 export async function saveListAsTemplate(name: string) {
   const items = await db.listItems.toArray()
   await db.templates.add({
+    id: newId(),
     name: name.trim(),
     items: items.map(({ name, quantity, category }) => ({ name, quantity, category })),
     createdAt: Date.now(),
@@ -250,6 +288,7 @@ export async function seedIfEmpty() {
   if ((await db.templates.count()) > 0) return
   const ing = (name: string, quantity = ''): Ingredient => ({ name, quantity, category: guessCategory(name) })
   await db.recipes.add({
+    id: newId(),
     name: 'Bowl',
     emoji: '🥗',
     ingredients: [

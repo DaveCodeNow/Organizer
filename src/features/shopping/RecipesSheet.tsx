@@ -1,7 +1,7 @@
 import { useState, type FormEvent } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { Pencil, Plus, ShoppingCart } from 'lucide-react'
-import { addToList, db, type Ingredient, type Recipe } from '../../lib/db'
+import { addToList, db, type Ingredient, type Recipe, newId } from '../../lib/db'
 import { Button, Field, IconButton, Sheet, inputClass } from '../../components/ui'
 import { confirmDialog } from '../../components/Confirm'
 import { IngredientEditor } from '../../components/IngredientEditor'
@@ -9,7 +9,7 @@ import { toast } from '../../components/Toast'
 
 const EMOJIS = ['🥗', '🍝', '🍛', '🌮', '🍕', '🍲', '🥘', '🍜', '🥪', '🍳', '🥞', '🍔', '🍣', '🥙', '🍰', '🥤']
 
-type Draft = { id?: number; name: string; emoji: string; ingredients: Ingredient[] }
+type Draft = { id?: string; name: string; emoji: string; ingredients: Ingredient[] }
 const blank = (): Draft => ({ name: '', emoji: EMOJIS[0], ingredients: [] })
 
 /** Rezepte verwalten – öffnet sich aus der Einkaufsliste. Beim Bearbeiten ersetzt der Editor das Sheet, danach geht es zurück zur Übersicht. */
@@ -68,7 +68,7 @@ function RecipeEditor({ draft, onClose }: { draft: Draft; onClose: () => void })
     if (!d.name.trim()) return
     const data = { name: d.name.trim(), emoji: d.emoji, ingredients: d.ingredients.filter((i) => i.name.trim()) }
     if (d.id) await db.recipes.update(d.id, data)
-    else await db.recipes.add({ ...data, createdAt: Date.now() } as Recipe)
+    else await db.recipes.add({ ...data, id: newId(), createdAt: Date.now() } as Recipe)
     onClose()
   }
 

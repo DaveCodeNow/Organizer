@@ -19,6 +19,13 @@ UI-Texte sind auf Deutsch.
 ## Befehle
 - `npm run dev` – Entwicklungsserver (mit `--host`, also auch im WLAN vom Handy erreichbar)
 - `npm run build` – Typecheck + Produktions-Build
+- Deployment: Push auf `main` → GitHub Action (`.github/workflows/deploy.yml`) → GitHub Pages unter `/<repo>/` (`BASE_PATH`)
+
+## Konto & Sync (Supabase)
+- Local-first: Dexie bleibt die Datenquelle der UI; `src/lib/sync.ts` gleicht im Hintergrund mit der Supabase-Tabelle `records` ab (Schema: `supabase/schema.sql`, RLS pro Nutzer).
+- Konfiguration per `VITE_SUPABASE_URL`/`VITE_SUPABASE_KEY` (lokal `.env.local`, siehe `.env.example`; online GitHub-Repo-Variablen). Ohne sie läuft die App rein lokal ohne Login.
+- Neue Datensätze brauchen Text-IDs aus `newId()` (kein `++id`), sonst kollidieren Geräte. Neue Tabellen in `SYNC_TABLES` eintragen.
+- Kein `table.clear()` für Nutzeraktionen – löst keine Hooks aus, der Sync bekommt das Löschen nicht mit. Stattdessen `toCollection().delete()`.
 
 ## Struktur
 - `src/features/<modul>/` – ein Ordner pro Feature; neuer Tab in `TABS` in `src/App.tsx`
@@ -26,6 +33,7 @@ UI-Texte sind auf Deutsch.
 - `src/lib/dates.ts` – Datumshilfen, immer lokales `YYYY-MM-DD` (nie `toISOString`)
 - `src/lib/nav.ts` – `navigate(tabId)` wechselt von überall den Tab
 - `src/lib/db.ts` – Datenbankschema und Aktionen; Schemaänderungen immer über eine neue `db.version(n)`
+- `src/features/account/` – Login-Bildschirm und Konto-Sheet (Wolken-Symbol in der Übersicht)
 - `src/lib/categories.ts` – Supermarkt-Kategorien + automatische Zuordnung per Schlüsselwort
 
 ## Design

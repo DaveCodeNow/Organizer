@@ -1,11 +1,11 @@
 import { useState, type FormEvent } from 'react'
-import { db, type CostKind, type FixedCost, type Interval, type Notice } from '../../lib/db'
+import { db, type CostKind, type FixedCost, type Interval, type Notice, newId } from '../../lib/db'
 import { Button, Field, Segmented, Sheet, fieldClass, inputClass } from '../../components/ui'
 import { confirmDialog } from '../../components/Confirm'
 import { CONTRACTS, INTERVALS, NOTICES, euro, parseAmount, perMonth } from './costs'
 
 type Draft = {
-  id?: number
+  id?: string
   kind: CostKind
   name: string
   amount: string
@@ -63,7 +63,7 @@ export function CostEditor({ draft, onClose }: { draft: Draft; onClose: () => vo
       note: opt(d.note),
     }
     if (d.id) await db.fixedCosts.update(d.id, data)
-    else await db.fixedCosts.add({ ...data, createdAt: Date.now() } as FixedCost)
+    else await db.fixedCosts.add({ ...data, id: newId(), createdAt: Date.now() } as FixedCost)
     onClose()
   }
 
