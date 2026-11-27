@@ -3,7 +3,7 @@ import { useLiveQuery } from 'dexie-react-hooks'
 import { Plus, Shapes } from 'lucide-react'
 import { db, uid, type GoalCategory } from '../../lib/db'
 import { inputClass } from '../../components/ui'
-import { CATEGORY_SYMBOLS, SymbolGrid, SymbolIcon } from '../../components/icons'
+import { CATEGORY_SYMBOL_GROUPS, SymbolGrid, SymbolIcon } from '../../components/icons'
 
 /** Kategorien für Ziele und To-dos (nicht zu verwechseln mit den Supermarkt-Kategorien in lib/categories.ts). */
 
@@ -111,7 +111,7 @@ export function extractHashtag(text: string) {
 
 /** Auswahl aus den Kategorie-Symbolen, optional mit „Ohne“. */
 export function CategorySymbolGrid(props: { value?: string; onPick: (key: string | undefined) => void; allowNone?: boolean }) {
-  return <SymbolGrid symbols={CATEGORY_SYMBOLS} {...props} />
+  return <SymbolGrid groups={CATEGORY_SYMBOL_GROUPS} {...props} />
 }
 
 /** Eine Kategorie wählen (oder keine) bzw. direkt eine neue anlegen – für Editoren von Zielen und To-dos. */

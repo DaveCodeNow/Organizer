@@ -6,7 +6,7 @@ import { Button, Field, IconButton, Sheet, inputClass } from '../../components/u
 import { confirmDialog } from '../../components/Confirm'
 import { IngredientEditor } from '../../components/IngredientEditor'
 import { toast } from '../../components/Toast'
-import { RECIPE_SYMBOLS, SymbolGrid, SymbolIcon } from '../../components/icons'
+import { RECIPE_SYMBOL_GROUPS, SymbolGrid, SymbolIcon } from '../../components/icons'
 
 type Draft = { id?: string; name: string; emoji: string; ingredients: Ingredient[] }
 const blank = (): Draft => ({ name: '', emoji: 'salad', ingredients: [] })
@@ -90,7 +90,7 @@ function RecipeEditor({ draft, onClose }: { draft: Draft; onClose: () => void })
 
         <div>
           <span className="mb-1.5 block text-sm font-semibold">Symbol</span>
-          <SymbolGrid symbols={RECIPE_SYMBOLS} value={d.emoji} onPick={(key) => key && setD({ ...d, emoji: key })} />
+          <SymbolGrid groups={RECIPE_SYMBOL_GROUPS} value={d.emoji} onPick={(key) => key && setD({ ...d, emoji: key })} />
         </div>
 
         <div>
