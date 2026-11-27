@@ -35,11 +35,17 @@ const RULES = Object.entries(KEYWORDS)
   .flatMap(([cat, words]) => words.map((w) => ({ cat: cat as CategoryId, w })))
   .sort((a, b) => b.w.length - a.w.length)
 
+/** Umlaute vereinheitlichen, damit Plurale wie „Äpfel“ zu „apfel“ passen */
+const fold = (s: string) => s.toLowerCase().replace(/ä/g, 'a').replace(/ö/g, 'o').replace(/ü/g, 'u').replace(/ß/g, 'ss')
+
 export function guessCategory(name: string): CategoryId {
-  const n = name.toLowerCase().trim()
+  const n = fold(name.trim())
   const words = n.split(/[\s,-]+/)
   // Kurze Wörter (ei, öl, eis, tee) nur als ganzes Wort, sonst würde „Reis“ als „ei“ erkannt.
-  const hit = RULES.find(({ w }) => (w.length <= 3 ? words.includes(w) : n.includes(w)))
+  const hit = RULES.find(({ w }) => {
+    const k = fold(w)
+    return k.length <= 3 ? words.includes(k) : n.includes(k)
+  })
   return hit?.cat ?? 'sonstiges'
 }
 

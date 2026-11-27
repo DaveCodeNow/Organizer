@@ -1,6 +1,6 @@
 import { useMemo, useState, type FormEvent, type ReactNode } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
-import { BookOpen, Bookmark, MoreHorizontal, Plus, Trash2, BookmarkPlus, ListX, Eraser, ShoppingBasket, CircleCheck, ListPlus } from 'lucide-react'
+import { BookOpen, Bookmark, MoreHorizontal, Plus, Trash2, BookmarkPlus, ListX, Eraser, ShoppingBasket, CircleCheck, ListPlus, Rows3, type LucideIcon } from 'lucide-react'
 import { SymbolIcon } from '../../components/icons'
 import { addToList, clearChecked, clearList, db, deleteItem, saveListAsTemplate, toggleItem, type ListItem, type Product, type Recipe } from '../../lib/db'
 import { likelyTypo } from '../../lib/products'
@@ -14,6 +14,18 @@ import { TemplatesSheet } from './TemplatesSheet'
 import { ProductsSheet } from './ProductsSheet'
 import { ProductSuggestions } from './ProductSuggestions'
 
+// Darstellung der Liste: nach Kategorien gruppiert (Überschriften) oder kompakt (eine Liste, Kategorie als Icon).
+// Bewusst nur lokal im Gerät gespeichert – bleibt über Neustart und Abmelden hinweg erhalten.
+type ListView = 'grouped' | 'compact'
+const VIEW_KEY = 'shopping:view'
+function readView(): ListView {
+  try {
+    return localStorage.getItem(VIEW_KEY) === 'compact' ? 'compact' : 'grouped'
+  } catch {
+    return 'grouped'
+  }
+}
+
 export default function ShoppingList() {
   const items = useLiveQuery(() => db.listItems.toArray(), [])
   const recipes = useLiveQuery(() => db.recipes.orderBy('name').toArray(), [])
@@ -23,6 +35,15 @@ export default function ShoppingList() {
   const [recipesOpen, setRecipesOpen] = useState(false)
   const [templatesOpen, setTemplatesOpen] = useState(false)
   const [productsOpen, setProductsOpen] = useState(false)
+  const [view, setView] = useState<ListView>(readView)
+  const compact = view === 'compact'
+  const toggleView = () => {
+    const next: ListView = compact ? 'grouped' : 'compact'
+    setView(next)
+    try {
+      localStorage.setItem(VIEW_KEY, next)
+    } catch {}
+  }
   // Rückfrage „Meintest du …?“, wenn ein neues Produkt einem bekannten sehr ähnlich ist
   const [typo, setTypo] = useState<{ entry: { name: string; quantity: string }; suggestion: Product } | null>(null)
 
@@ -164,7 +185,14 @@ export default function ShoppingList() {
             </div>
           )}
 
-          {groups.map((g) => (
+          {compact && groups.length > 0 && (
+            // Kompakt: gleiche Sortierung wie gruppiert (Supermarkt-Reihenfolge), aber ohne Überschriften
+            <ul className="overflow-hidden rounded-3xl bg-surface">
+              {groups.flatMap((g) => g.items.map((i) => <Row key={i.id} item={i} icon={g.icon} />))}
+            </ul>
+          )}
+
+          {!compact && groups.map((g) => (
             <section key={g.id}>
               <h2 className="mb-2.5 flex items-center gap-2 font-serif text-[17px] leading-[1.1] font-[600]">
                 <g.icon size={17} className="text-muted" />
@@ -198,6 +226,20 @@ export default function ShoppingList() {
 
       <Sheet open={menuOpen} onClose={() => setMenuOpen(false)} title="Liste">
         <div className="space-y-1 pb-2">
+          <button
+            type="button"
+            role="switch"
+            aria-checked={compact}
+            onClick={toggleView}
+            className="flex w-full items-center gap-3 rounded-full px-4 py-3.5 text-left text-[15px] font-medium transition hover:bg-bg"
+          >
+            <Rows3 size={20} />
+            <span className="flex-1">
+              Kompakte Ansicht
+              <span className="block text-xs font-normal text-muted">Ohne Überschriften, Kategorie als Icon</span>
+            </span>
+            <Switch on={compact} />
+          </button>
           <MenuItem
             icon={<BookmarkPlus size={20} />}
             label="Als Liste speichern"
@@ -237,11 +279,22 @@ export default function ShoppingList() {
   )
 }
 
-function Row({ item }: { item: ListItem }) {
+/** Ein- und Ausschalter (nur Anzeige – der umgebende Button übernimmt die Bedienung). */
+function Switch({ on }: { on: boolean }) {
+  return (
+    <span className={`relative h-7 w-12 shrink-0 rounded-full transition-colors ${on ? 'bg-brand' : 'bg-caramel'}`} aria-hidden>
+      <span className={`absolute top-1 left-1 size-5 rounded-full bg-surface transition-transform ${on ? 'translate-x-5' : ''}`} />
+    </span>
+  )
+}
+
+/** Eintrag der Liste; mit `icon` (kompakte Ansicht) steht die Kategorie als kleines Icon vor dem Namen. */
+function Row({ item, icon: Icon }: { item: ListItem; icon?: LucideIcon }) {
   return (
     <li className="group flex items-center gap-3 border-b border-line/70 pr-2 pl-4 last:border-0">
-      <button type="button" onClick={() => toggleItem(item)} className="flex min-h-14 flex-1 items-center gap-3 py-2 text-left">
+      <button type="button" onClick={() => toggleItem(item)} className={`flex flex-1 items-center gap-3 py-2 text-left ${Icon ? 'min-h-12' : 'min-h-14'}`}>
         <CheckCircle checked={item.checked} />
+        {Icon && <Icon size={16} className="shrink-0 text-muted" aria-hidden />}
         <span className={`flex-1 text-[15px] transition ${item.checked ? 'text-muted line-through' : 'font-medium'}`}>{item.name}</span>
         {item.quantity && (
           <span className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${item.checked ? 'text-muted' : 'bg-bg text-ink/80'}`}>
