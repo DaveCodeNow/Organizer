@@ -1,4 +1,4 @@
-import { useMemo, useState, type FormEvent, type ReactNode } from 'react'
+import { useMemo, useState, type FormEvent } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { BookOpen, Bookmark, MoreHorizontal, Plus, Trash2, BookmarkPlus, ListX, Eraser, ShoppingBasket, CircleCheck, ListPlus, Rows3, type LucideIcon } from 'lucide-react'
 import { SymbolIcon } from '../../components/icons'
@@ -6,7 +6,7 @@ import { addToList, clearChecked, clearList, db, deleteItem, saveListAsTemplate,
 import { likelyTypo } from '../../lib/products'
 import { CATEGORIES } from '../../lib/categories'
 import { parseEntry } from '../../lib/parse'
-import { Button, CheckCircle, EmptyState, IconButton, PageHeader, Sheet, inputClass } from '../../components/ui'
+import { Button, CheckCircle, EmptyState, IconButton, MenuItem, PageHeader, Sheet, Switch, inputClass } from '../../components/ui'
 import { toast } from '../../components/Toast'
 import { confirmDialog } from '../../components/Confirm'
 import { RecipesSheet } from './RecipesSheet'
@@ -279,15 +279,6 @@ export default function ShoppingList() {
   )
 }
 
-/** Ein- und Ausschalter (nur Anzeige – der umgebende Button übernimmt die Bedienung). */
-function Switch({ on }: { on: boolean }) {
-  return (
-    <span className={`relative h-7 w-12 shrink-0 rounded-full transition-colors ${on ? 'bg-brand' : 'bg-caramel'}`} aria-hidden>
-      <span className={`absolute top-1 left-1 size-5 rounded-full bg-surface transition-transform ${on ? 'translate-x-5' : ''}`} />
-    </span>
-  )
-}
-
 /** Eintrag der Liste; mit `icon` (kompakte Ansicht) steht die Kategorie als kleines Icon vor dem Namen. */
 function Row({ item, icon: Icon }: { item: ListItem; icon?: LucideIcon }) {
   return (
@@ -306,22 +297,6 @@ function Row({ item, icon: Icon }: { item: ListItem; icon?: LucideIcon }) {
         <Trash2 size={17} />
       </IconButton>
     </li>
-  )
-}
-
-function MenuItem({ icon, label, onClick, danger, disabled }: { icon: ReactNode; label: string; onClick: () => void; danger?: boolean; disabled?: boolean }) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      disabled={disabled}
-      className={`flex w-full items-center gap-3 rounded-full px-4 py-3.5 text-left text-[15px] font-medium transition hover:bg-bg disabled:opacity-35 ${
-        danger ? 'text-warn' : ''
-      }`}
-    >
-      {icon}
-      {label}
-    </button>
   )
 }
 

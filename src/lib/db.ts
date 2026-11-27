@@ -87,10 +87,17 @@ export interface Todo {
   doneAt?: number
   /** ID einer GoalCategory */
   category?: string
+  /** Punkte-Stufe; leer = Standardstufe der Kategorie (bzw. „leicht“) */
+  level?: Level
+  /** Erledigt und aus der Liste entfernt – bleibt für die Wochenrückblicke erhalten */
+  archived?: boolean
   /** Veraltet (bis DB v4), in v5 zu `category` migriert */
   tags?: string[]
   createdAt: number
 }
+
+/** Punkte-Stufen für To-dos. Gespeichert wird nur die Stufe, die Punktzahl kommt aus LEVEL_POINTS (features/goals/points.ts). */
+export type Level = 'leicht' | 'mittel' | 'wichtig'
 
 export type HabitFrequency = 'daily' | 'weekly'
 
@@ -113,8 +120,21 @@ export interface GoalCategory {
   id: string
   name: string
   emoji?: string
+  /** Standard-Punktestufe für neue To-dos dieser Kategorie */
+  level?: Level
+  /** Punkteziel pro Woche */
+  weeklyGoal?: number
   createdAt: number
 }
+
+/** Einstellungen, die über das Konto synchronisiert werden (ein Datensatz pro Thema). */
+export interface PointsSettings {
+  id: 'points'
+  enabled: boolean
+  /** Punkteziel pro Woche, gesamt */
+  weeklyGoal?: number
+}
+export type Setting = PointsSettings
 
 export interface SubGoal {
   id: string
@@ -158,6 +178,7 @@ export const db = new Dexie('haushalt') as Dexie & {
   goalCategories: EntityTable<GoalCategory, 'id'>
   habits: EntityTable<Habit, 'id'>
   products: EntityTable<Product, 'id'>
+  settings: EntityTable<Setting, 'id'>
 }
 
 db.version(1).stores({
@@ -247,6 +268,10 @@ db.version(8)
 
 db.version(9).stores({
   products: 'id, name',
+})
+
+db.version(10).stores({
+  settings: 'id',
 })
 
 /** Weltweit eindeutige ID für Datensätze (crypto.randomUUID fehlt bei http im WLAN, getRandomValues nicht). */

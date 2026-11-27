@@ -55,7 +55,7 @@ export function useCategoriesQuery() {
     async () => {
       const [cats, goals, todos, habits] = await Promise.all([db.goalCategories.toArray(), db.goals.toArray(), db.todos.toArray(), db.habits.toArray()])
       const count = new Map<string, number>()
-      for (const x of [...goals, ...todos, ...habits]) if (x.category) count.set(x.category, (count.get(x.category) ?? 0) + 1)
+      for (const x of [...goals, ...todos.filter((t) => !t.archived), ...habits]) if (x.category) count.set(x.category, (count.get(x.category) ?? 0) + 1)
       return cats.map((c) => ({ ...c, count: count.get(c.id) ?? 0 })).sort((a, b) => a.name.localeCompare(b.name, 'de'))
     },
     [],

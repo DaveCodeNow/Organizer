@@ -2,12 +2,14 @@ import { useEffect, useState, type ReactNode } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { AlertCircle, ChevronRight, CircleCheck, Plus, ShoppingBasket, Target, type LucideIcon } from 'lucide-react'
 import { db, type CostKind, type FixedCost } from '../../lib/db'
-import { today } from '../../lib/dates'
+import { startOfWeek, today } from '../../lib/dates'
 import { navigate } from '../../lib/nav'
 import { PageHeader, SectionTitle } from '../../components/ui'
 import { CONTRACTS, INTERVALS, adoptRent, contractStatus, euro, perMonth, rentLine, tariffCheck, tariffLine } from './costs'
 import { CostEditor, toDraft } from './CostEditor'
 import { AccountButton } from '../account/AccountButton'
+import { usePointsSettings, weekStats } from '../goals/points'
+import { WeekProgress } from '../goals/PointsUI'
 
 /** Haushaltsübersicht: Fixkosten, Verträge und das Wichtigste aus den anderen Modulen. */
 export default function Overview() {
@@ -16,6 +18,11 @@ export default function Overview() {
   const todos = useLiveQuery(() => db.todos.filter((t) => !t.done).toArray(), [])
   const goals = useLiveQuery(() => db.goals.filter((g) => !g.done).toArray(), [])
   const [editing, setEditing] = useState<ReturnType<typeof toDraft> | null>(null)
+  const points = usePointsSettings()
+  const weekPoints = useLiveQuery(
+    async () => (points.enabled ? weekStats(await db.todos.toArray(), await db.goalCategories.toArray(), startOfWeek()).total : undefined),
+    [points.enabled],
+  )
 
   // Einen bisher unter „Weitere Fixkosten“ erfassten Posten „Miete“ als Mietvertrag übernehmen
   useEffect(() => {
@@ -81,6 +88,7 @@ export default function Overview() {
           <Tile icon={CircleCheck} value={dueTodos} label="To-dos fällig" warn={dueTodos > 0} onClick={() => navigate('goals')} />
           <Tile icon={Target} value={goals.length} label={goals.length ? `Ziele · ${goalProgress} %` : 'Ziele aktiv'} onClick={() => navigate('goals')} />
         </section>
+        {weekPoints !== undefined && <WeekProgress points={weekPoints} goal={points.weeklyGoal} label="diese Woche" onClick={() => navigate('goals')} />}
 
         {/* Verträge */}
         <section>

@@ -17,7 +17,7 @@ import { confirmDialog } from '../components/Confirm'
  *
  * Neue Tabellen, die synchronisiert werden sollen: in SYNC_TABLES eintragen (IDs müssen Text-IDs aus newId() sein).
  */
-export const SYNC_TABLES = ['listItems', 'recipes', 'templates', 'fixedCosts', 'todos', 'goals', 'goalCategories', 'habits', 'products'] as const
+export const SYNC_TABLES = ['listItems', 'recipes', 'templates', 'fixedCosts', 'todos', 'goals', 'goalCategories', 'habits', 'products', 'settings'] as const
 type SyncTable = (typeof SYNC_TABLES)[number]
 const isSyncTable = (t: string): t is SyncTable => (SYNC_TABLES as readonly string[]).includes(t)
 

@@ -20,11 +20,13 @@ export function IconButton({
   onClick,
   children,
   tone = 'plain',
+  disabled,
 }: {
   label: string
   onClick: () => void
   children: ReactNode
   tone?: 'plain' | 'brand' | 'danger'
+  disabled?: boolean
 }) {
   const tones = {
     plain: 'border border-line bg-surface text-ink hover:bg-bg',
@@ -37,7 +39,8 @@ export function IconButton({
       aria-label={label}
       title={label}
       onClick={onClick}
-      className={`grid size-10 shrink-0 place-items-center rounded-full transition active:scale-95 ${tones[tone]}`}
+      disabled={disabled}
+      className={`grid size-10 shrink-0 place-items-center rounded-full transition active:scale-95 disabled:opacity-35 ${tones[tone]}`}
     >
       {children}
     </button>
@@ -231,5 +234,31 @@ export function SectionTitle({ children, action }: { children: ReactNode; action
       <h2 className="flex items-center gap-2 font-serif text-[19px] leading-[1.1] font-[600]">{children}</h2>
       {action}
     </div>
+  )
+}
+
+/** Ein- und Ausschalter (nur Anzeige – der umgebende Button übernimmt die Bedienung). */
+export function Switch({ on }: { on: boolean }) {
+  return (
+    <span className={`relative h-7 w-12 shrink-0 rounded-full transition-colors ${on ? 'bg-brand' : 'bg-caramel'}`} aria-hidden>
+      <span className={`absolute top-1 left-1 size-5 rounded-full bg-surface transition-transform ${on ? 'translate-x-5' : ''}`} />
+    </span>
+  )
+}
+
+/** Eintrag in einem Menü-Sheet */
+export function MenuItem({ icon, label, onClick, danger, disabled }: { icon: ReactNode; label: string; onClick: () => void; danger?: boolean; disabled?: boolean }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      disabled={disabled}
+      className={`flex w-full items-center gap-3 rounded-full px-4 py-3.5 text-left text-[15px] font-medium transition hover:bg-bg disabled:opacity-35 ${
+        danger ? 'text-warn' : ''
+      }`}
+    >
+      {icon}
+      {label}
+    </button>
   )
 }

@@ -2,18 +2,24 @@ import { useMemo, useState, type FormEvent } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { CalendarDays, ChevronDown, Plus, Shapes, CircleCheck } from 'lucide-react'
 import { SymbolIcon, symbolIcon } from '../../components/icons'
-import { db, type Todo, newId } from '../../lib/db'
-import { endOfWeek, formatDate, relativeDate, today } from '../../lib/dates'
+import { db, type Level, type Todo, newId } from '../../lib/db'
+import { endOfWeek, formatDate, relativeDate, startOfWeek, today } from '../../lib/dates'
 import { Button, CheckCircle, Chips, EmptyState, Field, SectionTitle, Sheet, inputClass } from '../../components/ui'
 import { GROUPS, GROUP_LABELS, HORIZONS, groupOf, horizonOf, type GroupId } from './horizons'
 import { CategoryPicker, categoryLabel, createCategory, extractHashtag, findCategory, useCategories } from './categories'
+import { LEVEL_POINTS, levelInfo, levelOf, nextLevel, pointsLabel, pointsOf, usePointsSettings, weekStats } from './points'
+import { LevelDots, LevelPicker, ReviewCard, WeekProgress } from './PointsUI'
+import { toast } from '../../components/Toast'
 
 export const toggleTodo = (t: Todo) => db.todos.update(t.id, { done: !t.done, doneAt: t.done ? undefined : Date.now() })
 
-export function Todos({ category }: { category: string | null }) {
+export function Todos({ category, onReport }: { category: string | null; onReport: (week: string) => void }) {
   const all = useLiveQuery(() => db.todos.toArray(), [])
-  const todos = useMemo(() => all?.filter((t) => !category || t.category === category), [all, category])
+  // Archivierte (erledigt und entfernt) bleiben nur für die Punkte-Rückblicke erhalten.
+  const todos = useMemo(() => all?.filter((t) => !t.archived && (!category || t.category === category)), [all, category])
   const cats = useCategories()
+  const points = usePointsSettings()
+  const week = useMemo(() => (points.enabled && all ? weekStats(all, cats, startOfWeek()) : undefined), [points.enabled, all, cats])
   const [text, setText] = useState('')
   const [due, setDue] = useState<string | undefined>(() => endOfWeek())
   const [editing, setEditing] = useState<Todo | null>(null)
@@ -85,6 +91,22 @@ export function Todos({ category }: { category: string | null }) {
         )}
       </form>
 
+      {points.enabled && week && (
+        <div className="mt-3 space-y-3 px-5">
+          <ReviewCard onOpen={onReport} />
+          {current ? (
+            <WeekProgress
+              points={week.byCategory.find((c) => c.id === current.id)?.points ?? 0}
+              goal={current.weeklyGoal}
+              label={`${current.name} diese Woche`}
+              onClick={() => onReport(week.start)}
+            />
+          ) : (
+            <WeekProgress points={week.total} goal={points.weeklyGoal} label="diese Woche" onClick={() => onReport(week.start)} />
+          )}
+        </div>
+      )}
+
       {todos.length === 0 ? (
         current ? (
           <EmptyState icon={symbolIcon(current.emoji) ?? Shapes} title={`Keine To-dos in ${current.name}`} text="To-dos, die du jetzt oben anlegst, landen automatisch in dieser Kategorie." />
@@ -119,7 +141,11 @@ export function Todos({ category }: { category: string | null }) {
               <SectionTitle
                 action={
                   showDone && (
-                    <button type="button" onClick={() => db.todos.bulkDelete(done.map((t) => t.id))} className="h-10 px-1 text-sm font-semibold text-brand">
+                    <button
+                      type="button"
+                      onClick={() => db.todos.bulkUpdate(done.map((t) => ({ key: t.id, changes: { archived: true } })))}
+                      className="h-10 px-1 text-sm font-semibold text-brand"
+                    >
                       Entfernen
                     </button>
                   )
@@ -151,13 +177,23 @@ function TodoRow({ todo, group, showCategory, onEdit }: { todo: Todo; group?: Gr
   const cats = useCategories()
   // Nur das Symbol der Kategorie, dezent vor dem Titel – keine Plakette.
   const catEmoji = showCategory ? findCategory(cats, todo.category)?.emoji : undefined
+  const points = usePointsSettings().enabled
+  const level = levelOf(todo, cats)
   const overdue = group === 'überfällig'
   // In der Gruppe „Heute“ ist das Datum überflüssig, sonst „bis Sonntag“ bzw. „seit 3. Nov.“
   const label = !todo.due || group === 'heute' || todo.done ? undefined : overdue ? `seit ${formatDate(todo.due)}` : `bis ${relativeDate(todo.due)}`
 
   return (
     <li className="flex items-center border-b border-line/70 pr-4 last:border-0">
-      <button type="button" aria-label={todo.done ? 'Als offen markieren' : 'Erledigt'} onClick={() => toggleTodo(todo)} className="grid min-h-14 w-14 shrink-0 place-items-center">
+      <button
+        type="button"
+        aria-label={todo.done ? 'Als offen markieren' : 'Erledigt'}
+        onClick={() => {
+          toggleTodo(todo)
+          if (points && !todo.done) toast(`+ ${pointsLabel(pointsOf(todo, cats))}`)
+        }}
+        className="grid min-h-14 w-14 shrink-0 place-items-center"
+      >
         <CheckCircle checked={todo.done} />
       </button>
       <button type="button" onClick={onEdit} className="flex min-h-14 min-w-0 flex-1 items-center gap-3 py-2 text-left">
@@ -168,7 +204,19 @@ function TodoRow({ todo, group, showCategory, onEdit }: { todo: Todo; group?: Gr
         {label && (
           <span className={`shrink-0 rounded-full px-2.5 py-0.5 text-xs font-medium ${overdue ? 'bg-warn-soft text-warn' : 'bg-bg text-muted'}`}>{label}</span>
         )}
+        {points && todo.done && <span className="shrink-0 text-xs font-medium text-muted">+{LEVEL_POINTS[level]}</span>}
       </button>
+      {points && !todo.done && (
+        <button
+          type="button"
+          aria-label={`Stufe ${levelInfo(level).label} (${pointsLabel(LEVEL_POINTS[level])}) – antippen zum Ändern`}
+          title={`${levelInfo(level).label} · ${pointsLabel(LEVEL_POINTS[level])}`}
+          onClick={() => db.todos.update(todo.id, { level: nextLevel(level) })}
+          className="-mr-2 ml-1 grid size-10 shrink-0 place-items-center rounded-full transition active:scale-90"
+        >
+          <LevelDots level={level} />
+        </button>
+      )}
     </li>
   )
 }
@@ -177,11 +225,15 @@ function TodoEditor({ todo, onClose }: { todo: Todo; onClose: () => void }) {
   const [title, setTitle] = useState(todo.title)
   const [due, setDue] = useState(todo.due)
   const [category, setCategory] = useState(todo.category)
+  const [level, setLevel] = useState<Level | undefined>(todo.level)
+  const points = usePointsSettings().enabled
+  const cats = useCategories()
+  const catLevel = findCategory(cats, category)?.level ?? 'leicht'
 
   const save = async (e: FormEvent) => {
     e.preventDefault()
     if (!title.trim()) return
-    await db.todos.update(todo.id, { title: title.trim(), due, category })
+    await db.todos.update(todo.id, { title: title.trim(), due, category, level })
     onClose()
   }
 
@@ -208,6 +260,17 @@ function TodoEditor({ todo, onClose }: { todo: Todo; onClose: () => void }) {
           <span className="mb-1.5 block text-sm font-semibold">Kategorie</span>
           <CategoryPicker value={category} onChange={(id) => setCategory(id)} />
         </div>
+
+        {points && (
+          <div className="space-y-2">
+            <span className="block text-sm font-semibold">Stufe</span>
+            <LevelPicker value={level} fallback={catLevel} onChange={setLevel} />
+            <p className="text-xs text-muted">
+              {pointsLabel(LEVEL_POINTS[level ?? catLevel])}
+              {level ? '' : ' · Standard der Kategorie'}
+            </p>
+          </div>
+        )}
 
         <div className="flex gap-2 pt-1">
           <Button variant="ghost" onClick={remove} className="text-warn">
