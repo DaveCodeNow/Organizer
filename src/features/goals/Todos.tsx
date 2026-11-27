@@ -1,9 +1,9 @@
 import { useMemo, useState, type FormEvent } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
-import { ChevronDown, Plus, Shapes, CircleCheck } from 'lucide-react'
+import { CalendarDays, ChevronDown, Plus, Shapes, CircleCheck } from 'lucide-react'
 import { SymbolIcon, symbolIcon } from '../../components/icons'
 import { db, type Todo, newId } from '../../lib/db'
-import { endOfWeek, formatDate, relativeDate } from '../../lib/dates'
+import { endOfWeek, formatDate, relativeDate, today } from '../../lib/dates'
 import { Button, CheckCircle, Chips, EmptyState, Field, SectionTitle, Sheet, inputClass } from '../../components/ui'
 import { GROUPS, GROUP_LABELS, HORIZONS, groupOf, horizonOf, type GroupId } from './horizons'
 import { CategoryPicker, categoryLabel, createCategory, extractHashtag, findCategory, useCategories } from './categories'
@@ -58,7 +58,12 @@ export function Todos({ category }: { category: string | null }) {
             <Plus size={22} />
           </button>
         </div>
-        <Chips value={horizonOf(due)} options={HORIZONS} onChange={(id) => setDue(HORIZONS.find((h) => h.id === id)!.due())} />
+        <Chips
+          value={horizonOf(due)}
+          options={HORIZONS}
+          onChange={(id) => setDue(HORIZONS.find((h) => h.id === id)!.due())}
+          trailing={<DateChip value={due} onChange={setDue} />}
+        />
         {/* Bei aktivem Filter ist die Kategorie klar – dann keine eigene Auswahl. */}
         {!current && (
           <>
@@ -214,5 +219,35 @@ function TodoEditor({ todo, onClose }: { todo: Todo; onClose: () => void }) {
         </div>
       </form>
     </Sheet>
+  )
+}
+
+/** Chip mit Datumsauswahl: zeigt das gewählte Datum, wenn es zu keinem Horizont passt. */
+function DateChip({ value, onChange }: { value: string | undefined; onChange: (v: string | undefined) => void }) {
+  const custom = !!value && horizonOf(value) === undefined
+  return (
+    <label
+      className={`relative flex h-9 shrink-0 items-center gap-1.5 rounded-full border px-3.5 text-sm font-medium transition active:scale-95 ${
+        custom ? 'border-brand bg-brand-soft text-brand-ink' : 'border-line bg-surface text-muted'
+      }`}
+    >
+      <CalendarDays size={15} aria-hidden />
+      {custom ? formatDate(value) : 'Datum'}
+      <input
+        type="date"
+        aria-label="Fällig bis Datum"
+        min={today()}
+        value={value ?? ''}
+        onChange={(e) => e.target.value && onChange(e.target.value)}
+        onClick={(e) => {
+          try {
+            e.currentTarget.showPicker?.()
+          } catch {
+            /* ältere Browser öffnen den Picker selbst */
+          }
+        }}
+        className="absolute inset-0 size-full cursor-pointer opacity-0"
+      />
+    </label>
   )
 }

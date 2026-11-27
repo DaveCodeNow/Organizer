@@ -184,10 +184,13 @@ export function Chips<T extends string>({
   value,
   options,
   onChange,
+  trailing,
 }: {
   value: T | undefined
   options: ReadonlyArray<{ id: T; label: ReactNode }>
   onChange: (v: T) => void
+  /** Zusätzliches Element am Ende der Reihe (z. B. Datumsauswahl) */
+  trailing?: ReactNode
 }) {
   return (
     <div className="-mx-5 flex gap-2 overflow-x-auto px-5 [scrollbar-width:none]">
@@ -203,6 +206,7 @@ export function Chips<T extends string>({
           {o.label}
         </button>
       ))}
+      {trailing}
     </div>
   )
 }
