@@ -1,9 +1,9 @@
 import { useState, type FormEvent } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
-import { Check, ChevronDown, Pencil, Plus, Target, Trophy, X } from 'lucide-react'
+import { ChevronDown, Pencil, Plus, Target, Trophy, X } from 'lucide-react'
 import { db, uid, type Goal, type SubGoal, newId } from '../../lib/db'
 import { formatDate } from '../../lib/dates'
-import { Button, CheckCircle, EmptyState, Field, IconButton, SectionTitle, Sheet, fieldClass, inputClass } from '../../components/ui'
+import { Button, CheckCircle, EmptyState, Field, SectionTitle, Sheet, fieldClass, inputClass } from '../../components/ui'
 import { confirmDialog } from '../../components/Confirm'
 import { toast } from '../../components/Toast'
 import { CategoryPicker, CategoryTag, categoryLabel, findCategory, useCategories } from './categories'
@@ -54,7 +54,7 @@ export function Goals({ category }: { category: string | null }) {
 
   return (
     <>
-      <div className="space-y-6 px-5 pt-2">
+      <div className="space-y-5 px-5 pt-2">
         <Button variant="secondary" className="w-full" onClick={() => setEditing(blank())}>
           <Plus size={18} /> {current ? `Neues Ziel in ${categoryLabel(current)}` : 'Neues Ziel'}
         </Button>
@@ -77,11 +77,11 @@ export function Goals({ category }: { category: string | null }) {
                 <span className="font-sans text-sm font-normal text-muted">{group.items.length}</span>
               </SectionTitle>
             )}
-            <div className="space-y-3">
+            <ul className="overflow-hidden rounded-3xl bg-surface">
               {group.items.map((g) => (
-                <GoalCard key={g.id} goal={g} onEdit={() => setEditing(toDraft(g))} />
+                <GoalRow key={g.id} goal={g} onEdit={() => setEditing(toDraft(g))} />
               ))}
-            </div>
+            </ul>
           </section>
         ))}
 
@@ -90,9 +90,17 @@ export function Goals({ category }: { category: string | null }) {
             <SectionTitle>Erreicht · {reached.length}</SectionTitle>
             <ul className="overflow-hidden rounded-3xl bg-surface/60">
               {reached.map((g) => (
-                <li key={g.id} className="border-b border-line/70 last:border-0">
-                  <button type="button" onClick={() => setEditing(toDraft(g))} className="flex min-h-14 w-full items-center gap-3 px-4 text-left">
-                    <span className="flex-1 text-muted line-through">{g.title}</span>
+                <li key={g.id} className="flex items-center border-b border-line/70 pr-4 last:border-0">
+                  <button
+                    type="button"
+                    aria-label={`${g.title} wieder öffnen`}
+                    onClick={() => db.goals.update(g.id, { done: false })}
+                    className="grid min-h-12 w-12 shrink-0 place-items-center"
+                  >
+                    <CheckCircle checked />
+                  </button>
+                  <button type="button" onClick={() => setEditing(toDraft(g))} className="flex min-h-12 min-w-0 flex-1 items-center gap-3 text-left">
+                    <span className="flex-1 text-[15px] text-muted line-through">{g.title}</span>
                     <Trophy size={17} className="text-caramel" />
                   </button>
                 </li>
@@ -107,11 +115,11 @@ export function Goals({ category }: { category: string | null }) {
   )
 }
 
-function GoalCard({ goal, onEdit }: { goal: Goal; onEdit: () => void }) {
+// Kompakte Zeile: Haken = Ziel erreicht, Antippen des Titels klappt Unterziele, Notiz und Aktionen auf.
+function GoalRow({ goal, onEdit }: { goal: Goal; onEdit: () => void }) {
+  const [open, setOpen] = useState(false)
   const [adding, setAdding] = useState(false)
   const [text, setText] = useState('')
-  // Unterziele sind eingeklappt; Fortschrittsbalken bleibt sichtbar.
-  const [open, setOpen] = useState(false)
   const doneCount = goal.subgoals.filter((s) => s.done).length
   const p = progress(goal)
 
@@ -129,98 +137,76 @@ function GoalCard({ goal, onEdit }: { goal: Goal; onEdit: () => void }) {
     toast(`Ziel „${goal.title}“ erreicht`)
   }
 
-  const meta = [
-    !goal.subgoals.length && 'Keine Unterziele',
-    goal.targetDate && `bis ${formatDate(goal.targetDate)}`,
-  ]
-    .filter(Boolean)
-    .join(' · ')
+  const meta = [goal.subgoals.length > 0 && `${doneCount}/${goal.subgoals.length}`, goal.targetDate && `bis ${formatDate(goal.targetDate)}`].filter(Boolean).join(' · ')
 
   return (
-    <article className="rounded-3xl bg-surface p-4">
-      <div className="flex items-start gap-3">
-        <div className="min-w-0 flex-1 pt-1.5 pl-1">
-          <h3 className="font-serif text-[19px] leading-[1.15] font-[600]">{goal.title}</h3>
-          {meta && <p className="mt-1 text-sm text-muted">{meta}</p>}
-        </div>
-        <IconButton label={`${goal.title} bearbeiten`} tone="danger" onClick={onEdit}>
-          <Pencil size={17} />
-        </IconButton>
+    <li className="border-b border-line/70 last:border-0">
+      <div className="flex items-center pr-2">
+        <button type="button" aria-label={`${goal.title} als erreicht markieren`} onClick={complete} className="grid min-h-12 w-12 shrink-0 place-items-center">
+          <CheckCircle checked={false} />
+        </button>
+        <button type="button" onClick={() => setOpen(!open)} aria-expanded={open} className="flex min-h-12 min-w-0 flex-1 items-center gap-2 py-2 text-left">
+          <span className="min-w-0 flex-1 text-[15px] font-medium">{goal.title}</span>
+          {meta && <span className="shrink-0 text-xs text-muted">{meta}</span>}
+          <ChevronDown size={16} className={`shrink-0 text-muted transition ${open ? 'rotate-180' : ''}`} />
+        </button>
       </div>
 
-      {goal.note && <p className="mt-3 text-sm whitespace-pre-line text-muted">{goal.note}</p>}
-
-      {goal.subgoals.length > 0 && (
-        <>
-          <button
-            type="button"
-            onClick={() => setOpen(!open)}
-            aria-expanded={open}
-            className="mt-3 -mx-2 block w-[calc(100%+1rem)] rounded-2xl px-2 py-2 text-left transition hover:bg-bg"
-          >
-            <span className="block h-1.5 overflow-hidden rounded-full bg-line">
-              <span className="block h-full rounded-full bg-brand transition-[width] duration-500" style={{ width: `${p * 100}%` }} />
-            </span>
-            <span className="mt-2 flex items-center gap-1 text-sm text-muted">
-              {doneCount} von {goal.subgoals.length} Unterzielen
-              <ChevronDown size={16} className={`transition ${open ? 'rotate-180' : ''}`} />
-            </span>
-          </button>
-          {open && (
-            <ul className="mt-1 -mx-2">
-              {goal.subgoals.map((s) => (
-                <li key={s.id}>
-                  <button type="button" onClick={() => toggle(s.id)} className="flex min-h-11 w-full items-center gap-3 rounded-2xl px-2 text-left transition hover:bg-bg">
-                    <CheckCircle checked={s.done} small />
-                    <span className={`text-[15px] ${s.done ? 'text-muted line-through' : ''}`}>{s.title}</span>
-                  </button>
-                </li>
-              ))}
-            </ul>
+      {open && (
+        <div className="pr-4 pb-3 pl-12">
+          {goal.subgoals.length > 0 && (
+            <>
+              <span className="mb-1 block h-1 overflow-hidden rounded-full bg-line">
+                <span className="block h-full rounded-full bg-brand transition-[width] duration-500" style={{ width: `${p * 100}%` }} />
+              </span>
+              <ul className="-ml-2">
+                {goal.subgoals.map((s) => (
+                  <li key={s.id}>
+                    <button type="button" onClick={() => toggle(s.id)} className="flex min-h-10 w-full items-center gap-3 rounded-2xl px-2 text-left transition hover:bg-bg">
+                      <CheckCircle checked={s.done} small />
+                      <span className={`text-[15px] ${s.done ? 'text-muted line-through' : ''}`}>{s.title}</span>
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            </>
           )}
-        </>
-      )}
 
-      {adding ? (
-        <form onSubmit={addSub} className="mt-2 flex gap-2">
-          <input
-            autoFocus
-            value={text}
-            onChange={(e) => setText(e.target.value)}
-            onBlur={() => !text.trim() && setAdding(false)}
-            placeholder="Unterziel"
-            enterKeyHint="enter"
-            className={inputClass}
-          />
-          <button
-            type="submit"
-            aria-label="Unterziel hinzufügen"
-            disabled={!text.trim()}
-            className="grid size-11 shrink-0 place-items-center rounded-full bg-brand-soft text-brand-ink transition active:scale-95 disabled:opacity-40"
-          >
-            <Plus size={20} />
-          </button>
-        </form>
-      ) : (
-        <div className="mt-2 flex flex-wrap items-center gap-2">
-          <button
-            type="button"
-            onClick={() => {
-              setAdding(true)
-              setOpen(true)
-            }}
-            className="flex h-10 items-center gap-1 rounded-full px-2 text-sm font-semibold text-brand">
-            <Plus size={16} /> Unterziel
-          </button>
-          {(p === 1 || goal.subgoals.length === 0) && (
-            // Als Aktion formuliert (Verb + Haken), damit es nicht wie ein Status „bereits erreicht“ wirkt.
-            <Button variant={p === 1 ? 'primary' : 'secondary'} onClick={complete} className="ml-auto">
-              <Check size={18} strokeWidth={2.5} /> Als erreicht markieren
-            </Button>
+          {goal.note && <p className="mt-1 text-sm whitespace-pre-line text-muted">{goal.note}</p>}
+
+          {adding ? (
+            <form onSubmit={addSub} className="mt-2 flex gap-2">
+              <input
+                autoFocus
+                value={text}
+                onChange={(e) => setText(e.target.value)}
+                onBlur={() => !text.trim() && setAdding(false)}
+                placeholder="Unterziel"
+                enterKeyHint="enter"
+                className={inputClass}
+              />
+              <button
+                type="submit"
+                aria-label="Unterziel hinzufügen"
+                disabled={!text.trim()}
+                className="grid size-11 shrink-0 place-items-center rounded-full bg-brand-soft text-brand-ink transition active:scale-95 disabled:opacity-40"
+              >
+                <Plus size={20} />
+              </button>
+            </form>
+          ) : (
+            <div className="mt-1 -ml-2 flex items-center gap-1">
+              <button type="button" onClick={() => setAdding(true)} className="flex h-10 items-center gap-1 rounded-full px-2 text-sm font-semibold text-brand">
+                <Plus size={16} /> Unterziel
+              </button>
+              <button type="button" onClick={onEdit} className="ml-auto flex h-10 items-center gap-1.5 rounded-full px-2 text-sm text-muted">
+                <Pencil size={14} /> Bearbeiten
+              </button>
+            </div>
           )}
         </div>
       )}
-    </article>
+    </li>
   )
 }
 
