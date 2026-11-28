@@ -12,6 +12,7 @@ import { CategoriesContext, useCategoriesQuery } from './categories'
 import { ReportSheet } from './PointsUI'
 import { LEVELS, LEVEL_POINTS, updatePointsSettings, usePointsSettings } from './points'
 import { GoalInput } from './GoalInput'
+import { isPlanned } from './repeat'
 
 const VIEWS = [
   { id: 'todos', label: 'To-dos' },
@@ -48,7 +49,7 @@ export default function GoalsTodos() {
 
   const t = today()
   const subtitle = useLiveQuery(async () => {
-    const open = await db.todos.filter((x) => !x.done).toArray()
+    const open = await db.todos.filter((x) => !x.done && !x.archived && !isPlanned(x, t)).toArray()
     const due = open.filter((x) => x.due && x.due <= t).length
     const goals = await db.goals.filter((g) => !g.done).count()
     return `${due ? `${due} fällig` : `${open.length} offen`} · ${goals} ${goals === 1 ? 'Ziel' : 'Ziele'}`

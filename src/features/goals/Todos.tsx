@@ -10,7 +10,7 @@ import { CategoryPicker, createCategory, extractHashtag, findCategory, useCatego
 import { LEVEL_POINTS, levelInfo, nextLevel, pointsLabel, usePointsSettings, weekStats } from './points'
 import { LevelDots, LevelPicker, ReviewCard, WeekProgress } from './PointsUI'
 import { toast } from '../../components/Toast'
-import { REPEATS, repeatLabel, toggleTodo } from './repeat'
+import { REPEATS, isPlanned, repeatLabel, toggleTodo, visibleFrom } from './repeat'
 
 
 export function Todos({ onReport }: { onReport: (week: string) => void }) {
@@ -23,12 +23,15 @@ export function Todos({ onReport }: { onReport: (week: string) => void }) {
   // null = zu, Todo ohne id = neues To-do
   const [editing, setEditing] = useState<Draft | null>(null)
   const [showDone, setShowDone] = useState(false)
+  const [showPlanned, setShowPlanned] = useState(false)
 
-  const { groups, done } = useMemo(() => {
-    const open = (todos ?? []).filter((t) => !t.done).sort((a, b) => (a.due ?? '9999').localeCompare(b.due ?? '9999') || a.createdAt - b.createdAt)
+  const { groups, done, planned } = useMemo(() => {
+    // Wiederkehrende To-dos mit fernem Termin erst kurz vorher zeigen (z. B. jährliche 4 Wochen vorher)
+    const planned = (todos ?? []).filter((t) => isPlanned(t)).sort((a, b) => a.due!.localeCompare(b.due!))
+    const open = (todos ?? []).filter((t) => !t.done && !isPlanned(t)).sort((a, b) => (a.due ?? '9999').localeCompare(b.due ?? '9999') || a.createdAt - b.createdAt)
     const groups = GROUPS.map((id) => ({ id, items: open.filter((t) => groupOf(t.due) === id) })).filter((g) => g.items.length > 0)
     const done = (todos ?? []).filter((t) => t.done).sort((a, b) => (b.doneAt ?? 0) - (a.doneAt ?? 0))
-    return { groups, done }
+    return { groups, done, planned }
   }, [todos])
 
   if (!todos) return null
@@ -73,6 +76,27 @@ export function Todos({ onReport }: { onReport: (week: string) => void }) {
             </section>
           ))}
 
+          {planned.length > 0 && (
+            <section>
+              <SectionTitle>
+                <button type="button" onClick={() => setShowPlanned(!showPlanned)} className="flex h-10 items-center gap-1">
+                  Geplant · {planned.length}
+                  <ChevronDown size={16} className={`transition ${showPlanned ? 'rotate-180' : ''}`} />
+                </button>
+              </SectionTitle>
+              {showPlanned && (
+                <>
+                  <ul className="overflow-hidden rounded-3xl bg-surface/60">
+                    {planned.map((t) => (
+                      <TodoRow key={t.id} todo={t} planned onEdit={() => setEditing(t)} />
+                    ))}
+                  </ul>
+                  <p className="mt-2 px-1 text-xs text-muted">Wiederkehrende To-dos erscheinen erst kurz vor dem Termin in der Liste.</p>
+                </>
+              )}
+            </section>
+          )}
+
           {done.length > 0 && (
             <section>
               <SectionTitle
@@ -110,7 +134,7 @@ export function Todos({ onReport }: { onReport: (week: string) => void }) {
   )
 }
 
-function TodoRow({ todo, group, onEdit }: { todo: Todo; group?: GroupId; onEdit: () => void }) {
+function TodoRow({ todo, group, planned, onEdit }: { todo: Todo; group?: GroupId; planned?: boolean; onEdit: () => void }) {
   const cats = useCategories()
   // Nur das Symbol der Kategorie, dezent vor dem Titel – keine Plakette.
   const catEmoji = findCategory(cats, todo.category)?.emoji
@@ -118,7 +142,10 @@ function TodoRow({ todo, group, onEdit }: { todo: Todo; group?: GroupId; onEdit:
   const level = todo.level
   const overdue = group === 'überfällig'
   // In der Gruppe „Heute“ ist das Datum überflüssig, sonst „bis Sonntag“ bzw. „seit 3. Nov.“
-  const label = !todo.due || group === 'heute' || todo.done ? undefined : overdue ? `seit ${formatDate(todo.due)}` : `bis ${relativeDate(todo.due)}`
+  const label = planned && todo.due
+    ? `am ${formatDate(todo.due)}`
+    : !todo.due || group === 'heute' || todo.done ? undefined : overdue ? `seit ${formatDate(todo.due)}` : `bis ${relativeDate(todo.due)}`
+  const title = planned ? `Erscheint ab ${formatDate(visibleFrom(todo))}` : undefined
 
   return (
     <li className="flex items-center border-b border-line/70 pr-4 last:border-0">
@@ -140,7 +167,7 @@ function TodoRow({ todo, group, onEdit }: { todo: Todo; group?: GroupId; onEdit:
         </span>
         {todo.repeat && !todo.done && <RepeatIcon size={14} className="shrink-0 text-muted" aria-label={todo.due ? repeatLabel(todo.repeat, todo.due) : 'Wiederkehrend'} />}
         {label && (
-          <span className={`shrink-0 rounded-full px-2.5 py-0.5 text-xs font-medium ${overdue ? 'bg-warn-soft text-warn' : 'bg-bg text-muted'}`}>{label}</span>
+          <span title={title} className={`shrink-0 rounded-full px-2.5 py-0.5 text-xs font-medium ${overdue ? 'bg-warn-soft text-warn' : 'bg-bg text-muted'}`}>{label}</span>
         )}
         {points && level && todo.done && <span className="shrink-0 text-xs font-medium text-muted">+{LEVEL_POINTS[level]}</span>}
       </button>

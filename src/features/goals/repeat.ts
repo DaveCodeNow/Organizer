@@ -6,13 +6,24 @@ import { addDays, fromISO, toISO, today } from '../../lib/dates'
  * Beim Abhaken wird das nächste To-do mit dem folgenden Termin angelegt.
  */
 
-export const REPEATS: ReadonlyArray<{ id: Repeat; label: string; months: number }> = [
-  { id: 'woche', label: 'Wöchentlich', months: 0 },
-  { id: 'monat', label: 'Monatlich', months: 1 },
-  { id: 'quartal', label: 'Vierteljährlich', months: 3 },
-  { id: 'halbjahr', label: 'Halbjährlich', months: 6 },
-  { id: 'jahr', label: 'Jährlich', months: 12 },
+/** `lead` = so viele Tage vor dem Termin erscheint das To-do in der Liste (vorher unter „Geplant“). */
+export const REPEATS: ReadonlyArray<{ id: Repeat; label: string; months: number; lead: number }> = [
+  { id: 'woche', label: 'Wöchentlich', months: 0, lead: Infinity },
+  { id: 'monat', label: 'Monatlich', months: 1, lead: 7 },
+  { id: 'quartal', label: 'Vierteljährlich', months: 3, lead: 14 },
+  { id: 'halbjahr', label: 'Halbjährlich', months: 6, lead: 14 },
+  { id: 'jahr', label: 'Jährlich', months: 12, lead: 28 },
 ]
+
+/** Wiederkehrendes To-do, dessen Termin noch weit weg ist – wird erst kurz vorher in der Liste gezeigt. */
+export function isPlanned(t: Todo, now = today()) {
+  if (!t.repeat || !t.due || t.done) return false
+  const lead = REPEATS.find((r) => r.id === t.repeat)!.lead
+  return Number.isFinite(lead) && now < addDays(t.due, -lead)
+}
+
+/** Ab wann ein geplantes To-do in der Liste erscheint. */
+export const visibleFrom = (t: Todo) => addDays(t.due!, -REPEATS.find((r) => r.id === t.repeat)!.lead)
 
 /** Monate addieren; der Tag bleibt `day`, in kürzeren Monaten der letzte des Monats (31. → 30. Apr. → 31. Mai). */
 function addMonths(iso: string, months: number, day: number) {

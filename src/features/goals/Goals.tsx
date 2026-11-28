@@ -1,6 +1,6 @@
 import { useState, type FormEvent } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
-import { Check, Pencil, Plus, Target, Trophy, X } from 'lucide-react'
+import { Check, ChevronDown, Pencil, Plus, Target, Trophy, X } from 'lucide-react'
 import { db, uid, type Goal, type SubGoal, newId } from '../../lib/db'
 import { formatDate } from '../../lib/dates'
 import { Button, CheckCircle, EmptyState, Field, IconButton, SectionTitle, Sheet, fieldClass, inputClass } from '../../components/ui'
@@ -110,6 +110,8 @@ export function Goals({ category }: { category: string | null }) {
 function GoalCard({ goal, onEdit }: { goal: Goal; onEdit: () => void }) {
   const [adding, setAdding] = useState(false)
   const [text, setText] = useState('')
+  // Unterziele sind eingeklappt; Fortschrittsbalken bleibt sichtbar.
+  const [open, setOpen] = useState(false)
   const doneCount = goal.subgoals.filter((s) => s.done).length
   const p = progress(goal)
 
@@ -128,7 +130,7 @@ function GoalCard({ goal, onEdit }: { goal: Goal; onEdit: () => void }) {
   }
 
   const meta = [
-    goal.subgoals.length ? `${doneCount} von ${goal.subgoals.length} Unterzielen` : 'Keine Unterziele',
+    !goal.subgoals.length && 'Keine Unterziele',
     goal.targetDate && `bis ${formatDate(goal.targetDate)}`,
   ]
     .filter(Boolean)
@@ -139,7 +141,7 @@ function GoalCard({ goal, onEdit }: { goal: Goal; onEdit: () => void }) {
       <div className="flex items-start gap-3">
         <div className="min-w-0 flex-1 pt-1.5 pl-1">
           <h3 className="font-serif text-[19px] leading-[1.15] font-[600]">{goal.title}</h3>
-          <p className="mt-1 text-sm text-muted">{meta}</p>
+          {meta && <p className="mt-1 text-sm text-muted">{meta}</p>}
         </div>
         <IconButton label={`${goal.title} bearbeiten`} tone="danger" onClick={onEdit}>
           <Pencil size={17} />
@@ -150,19 +152,32 @@ function GoalCard({ goal, onEdit }: { goal: Goal; onEdit: () => void }) {
 
       {goal.subgoals.length > 0 && (
         <>
-          <div className="mt-4 h-1.5 overflow-hidden rounded-full bg-line">
-            <div className="h-full rounded-full bg-brand transition-[width] duration-500" style={{ width: `${p * 100}%` }} />
-          </div>
-          <ul className="mt-2 -mx-2">
-            {goal.subgoals.map((s) => (
-              <li key={s.id}>
-                <button type="button" onClick={() => toggle(s.id)} className="flex min-h-11 w-full items-center gap-3 rounded-2xl px-2 text-left transition hover:bg-bg">
-                  <CheckCircle checked={s.done} small />
-                  <span className={`text-[15px] ${s.done ? 'text-muted line-through' : ''}`}>{s.title}</span>
-                </button>
-              </li>
-            ))}
-          </ul>
+          <button
+            type="button"
+            onClick={() => setOpen(!open)}
+            aria-expanded={open}
+            className="mt-3 -mx-2 block w-[calc(100%+1rem)] rounded-2xl px-2 py-2 text-left transition hover:bg-bg"
+          >
+            <span className="block h-1.5 overflow-hidden rounded-full bg-line">
+              <span className="block h-full rounded-full bg-brand transition-[width] duration-500" style={{ width: `${p * 100}%` }} />
+            </span>
+            <span className="mt-2 flex items-center gap-1 text-sm text-muted">
+              {doneCount} von {goal.subgoals.length} Unterzielen
+              <ChevronDown size={16} className={`transition ${open ? 'rotate-180' : ''}`} />
+            </span>
+          </button>
+          {open && (
+            <ul className="mt-1 -mx-2">
+              {goal.subgoals.map((s) => (
+                <li key={s.id}>
+                  <button type="button" onClick={() => toggle(s.id)} className="flex min-h-11 w-full items-center gap-3 rounded-2xl px-2 text-left transition hover:bg-bg">
+                    <CheckCircle checked={s.done} small />
+                    <span className={`text-[15px] ${s.done ? 'text-muted line-through' : ''}`}>{s.title}</span>
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
         </>
       )}
 
@@ -188,7 +203,13 @@ function GoalCard({ goal, onEdit }: { goal: Goal; onEdit: () => void }) {
         </form>
       ) : (
         <div className="mt-2 flex flex-wrap items-center gap-2">
-          <button type="button" onClick={() => setAdding(true)} className="flex h-10 items-center gap-1 rounded-full px-2 text-sm font-semibold text-brand">
+          <button
+            type="button"
+            onClick={() => {
+              setAdding(true)
+              setOpen(true)
+            }}
+            className="flex h-10 items-center gap-1 rounded-full px-2 text-sm font-semibold text-brand">
             <Plus size={16} /> Unterziel
           </button>
           {(p === 1 || goal.subgoals.length === 0) && (
