@@ -108,7 +108,7 @@ export default function Overview() {
             aria-expanded={contractsOpen}
             className="flex min-h-14 w-full items-center gap-3 rounded-3xl bg-surface px-4 py-3 text-left transition active:scale-[.99]"
           >
-            <span className="grid size-10 shrink-0 place-items-center rounded-full bg-sand text-ink">
+            <span className="grid size-10 shrink-0 place-items-center rounded-full bg-sand text-brand">
               <FileText size={19} />
             </span>
             <span className="min-w-0 flex-1">
@@ -131,7 +131,7 @@ export default function Overview() {
                       onClick={() => edit(k.id)}
                       className="flex w-full items-center gap-3 rounded-3xl border border-dashed border-line p-4 text-left text-muted transition active:scale-[.99]"
                     >
-                      <span className="grid size-11 place-items-center rounded-full bg-surface">
+                      <span className="grid size-11 place-items-center rounded-full bg-surface text-brand">
                         <k.icon size={20} />
                       </span>
                       <span className="flex-1 font-medium">{k.title} hinterlegen</span>
@@ -238,7 +238,7 @@ function Brand() {
 function Tile({ icon: Icon, value, label, warn, onClick }: { icon: LucideIcon; value: number; label: string; warn?: boolean; onClick: () => void }) {
   return (
     <button type="button" onClick={onClick} className="flex flex-col items-start rounded-3xl bg-surface p-4 text-left transition active:scale-[.98]">
-      <Icon size={20} className={warn ? 'text-warn' : 'text-muted'} />
+      <Icon size={20} className={warn ? 'text-warn' : 'text-brand'} />
       <span className={`mt-3 font-serif text-[28px] leading-[1.1] ${warn ? 'text-warn' : ''}`}>{value}</span>
       <span className="text-xs leading-tight text-muted">{label}</span>
     </button>
@@ -249,7 +249,7 @@ function CostCard({ icon: Icon, cost, onClick, children }: { icon: LucideIcon; c
   return (
     <button type="button" onClick={onClick} className="block w-full rounded-3xl bg-surface p-4 text-left transition active:scale-[.99]">
       <div className="flex items-center gap-3">
-        <span className="grid size-11 shrink-0 place-items-center rounded-full bg-sand text-ink">
+        <span className="grid size-11 shrink-0 place-items-center rounded-full bg-sand text-brand">
           <Icon size={20} />
         </span>
         <span className="min-w-0 flex-1">

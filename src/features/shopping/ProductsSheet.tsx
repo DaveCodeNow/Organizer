@@ -65,7 +65,7 @@ export function ProductsSheet({ open, onClose }: { open: boolean; onClose: () =>
         {groups.map((g) => (
           <section key={g.id}>
             <h3 className="mb-2.5 flex items-center gap-2 font-serif text-[17px] leading-[1.1] font-[600]">
-              <g.icon size={17} className="text-muted" />
+              <g.icon size={17} className="text-brand" />
               {g.label}
             </h3>
             <ul className="overflow-hidden rounded-3xl bg-bg">

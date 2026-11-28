@@ -162,7 +162,7 @@ function TodoRow({ todo, group, planned, onEdit }: { todo: Todo; group?: GroupId
       </button>
       <button type="button" onClick={onEdit} className="flex min-h-14 min-w-0 flex-1 items-center gap-3 py-2 text-left">
         <span className={`min-w-0 flex-1 text-[15px] ${todo.done ? 'text-muted line-through' : 'font-medium'}`}>
-          {catEmoji && <SymbolIcon value={catEmoji} size={15} className="mr-1.5 -mt-0.5 inline-block text-muted" />}
+          {catEmoji && <SymbolIcon value={catEmoji} size={15} className="mr-1.5 -mt-0.5 inline-block text-brand" />}
           {todo.title}
         </span>
         {todo.repeat && !todo.done && <RepeatIcon size={14} className="shrink-0 text-muted" aria-label={todo.due ? repeatLabel(todo.repeat, todo.due) : 'Wiederkehrend'} />}

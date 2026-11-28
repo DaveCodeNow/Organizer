@@ -94,7 +94,7 @@ export default function GoalsTodos() {
             onClick={() => updatePointsSettings({ enabled: !points.enabled })}
             className="flex w-full items-center gap-3 rounded-full px-4 py-3.5 text-left text-[15px] font-medium transition hover:bg-bg"
           >
-            <Sparkles size={20} />
+            <Sparkles size={20} className="shrink-0 text-brand" />
             <span className="flex-1">
               Punkte für To-dos
               <span className="block text-xs font-normal text-muted">Beim Anlegen wählbar: {LEVELS.map((l) => `${l.label} ${LEVEL_POINTS[l.id]}`).join(' · ')}</span>
@@ -104,7 +104,7 @@ export default function GoalsTodos() {
           {points.enabled && (
             <>
               <div className="flex items-center gap-3 px-4 py-2">
-                <Target size={20} className="shrink-0" />
+                <Target size={20} className="shrink-0 text-brand" />
                 <span className="flex-1 text-[15px] font-medium">
                   Wochenziel
                   <span className="block text-xs font-normal text-muted">Punkte pro Woche, alle Kategorien</span>

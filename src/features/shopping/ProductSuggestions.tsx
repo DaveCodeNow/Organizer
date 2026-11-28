@@ -29,7 +29,7 @@ export function ProductSuggestions({ query, onPick }: { query: string; onPick: (
             onClick={() => onPick(p, quantity)}
             className="flex h-10 shrink-0 items-center gap-1.5 rounded-full border border-line bg-surface px-3.5 text-sm font-medium transition active:scale-95"
           >
-            <Icon size={15} className="text-muted" />
+            <Icon size={15} className="text-brand" />
             {p.name}
           </button>
         )

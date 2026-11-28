@@ -29,7 +29,7 @@ export function IconButton({
   disabled?: boolean
 }) {
   const tones = {
-    plain: 'border border-line bg-surface text-ink hover:bg-bg',
+    plain: 'border border-line bg-surface text-brand hover:bg-bg',
     brand: 'bg-brand text-surface hover:brightness-105',
     danger: 'text-muted hover:bg-warn-soft hover:text-warn',
   }
@@ -257,7 +257,7 @@ export function MenuItem({ icon, label, onClick, danger, disabled }: { icon: Rea
         danger ? 'text-warn' : ''
       }`}
     >
-      {icon}
+      <span className={`shrink-0 ${danger ? '' : 'text-brand'}`}>{icon}</span>
       {label}
     </button>
   )

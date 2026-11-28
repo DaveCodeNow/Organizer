@@ -142,7 +142,7 @@ function HabitCard({ habit, days, showCategory, onEdit }: { habit: Habit; days: 
       <div className="flex items-start gap-3">
         <div className="min-w-0 flex-1 pt-1.5 pl-1">
           <h3 className="flex items-center gap-2 font-serif text-[19px] leading-[1.15] font-[600]">
-            {emoji && <SymbolIcon value={emoji} size={17} className="shrink-0 text-muted" />}
+            {emoji && <SymbolIcon value={emoji} size={17} className="shrink-0 text-brand" />}
             {habit.title}
           </h3>
           <p className="mt-1 text-sm text-muted">{status}</p>

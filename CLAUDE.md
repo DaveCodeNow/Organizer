@@ -42,7 +42,7 @@ UI-Texte sind auf Deutsch.
 - Tiefe über Farbabstufung (Creme → Elfenbein) statt Schatten; feine Linien in `line`.
 - Schrift: `font-serif` (Fraunces, 400 oder `font-[600]`, Zeilenhöhe ~1.1) nur für Überschriften/Titel; sonst DM Sans (400/500/700 – `font-semibold` ist auf 500 gemappt). Betonte Wörter in Überschriften als `<em>` → kursiv in Akzentfarbe (PageHeader-`title` nimmt ReactNode).
 - Formen: Karten `rounded-3xl` (= 1.75rem), Buttons/Inputs/Chips in Pillenform (`rounded-full`), Textareas über `fieldClass`.
-- Icons: lucide-react, Linienstil. Symbole von Kategorien/Rezepten über `components/icons.tsx` (`SymbolIcon`, `SymbolGrid`); im Datenfeld `emoji` steht ein Symbol-Schlüssel, alte Emoji-Werte werden dort auf Icons abgebildet.
+- Icons: lucide-react, Linienstil. Inhaltliche Icons (Kategorie-/Rezeptsymbole, Kacheln, Header-Buttons, Menüeinträge) in `text-brand`; Bedien-Icons wie Pfeile, X, Stift, Mülleimer bleiben `muted`. Symbole von Kategorien/Rezepten über `components/icons.tsx` (`SymbolIcon`, `SymbolGrid`); im Datenfeld `emoji` steht ein Symbol-Schlüssel, alte Emoji-Werte werden dort auf Icons abgebildet.
 - Mobile first: max. Breite `max-w-lg`, Bottom-Tab-Bar, Bottom Sheets statt Modals, Safe-Area-Insets beachten
 - Touch-Ziele mindestens 40px
 - Keine Browser-Dialoge (`confirm`, `alert`, `prompt`) – die werden in eingebetteten Vorschauen unterdrückt. Rückfragen über `confirmDialog()` aus `src/components/Confirm.tsx`.

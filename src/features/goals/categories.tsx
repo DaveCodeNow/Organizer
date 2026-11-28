@@ -27,7 +27,7 @@ export const categoryLabel = (c: Pick<GoalCategory, 'name'>) => c.name
 export function CategoryTag({ cat, size = 15 }: { cat: Pick<GoalCategory, 'name' | 'emoji'>; size?: number }) {
   return (
     <span className="inline-flex min-w-0 items-center gap-1.5">
-      <SymbolIcon value={cat.emoji} size={size} className="shrink-0" />
+      <SymbolIcon value={cat.emoji} size={size} className="shrink-0 text-brand" />
       <span className="truncate">{cat.name}</span>
     </span>
   )
@@ -40,7 +40,7 @@ export function SymbolButton({ value, active, label, onClick }: { value?: string
       type="button"
       aria-label={label}
       onClick={onClick}
-      className={`grid size-11 shrink-0 place-items-center rounded-full border bg-surface transition ${active ? 'border-brand text-brand' : 'border-line text-ink'}`}
+      className={`grid size-11 shrink-0 place-items-center rounded-full border bg-surface transition ${active ? 'border-brand text-brand' : 'border-line text-brand'}`}
     >
       {value ? <SymbolIcon value={value} size={19} /> : <Shapes size={18} className="text-muted" />}
     </button>

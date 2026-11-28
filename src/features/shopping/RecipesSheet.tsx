@@ -38,7 +38,7 @@ export function RecipesSheet({ open, onClose }: { open: boolean; onClose: () => 
         <ul className="space-y-2">
           {recipes?.map((r) => (
             <li key={r.id} className="flex items-center gap-3 rounded-3xl bg-bg p-3">
-              <div className="grid size-11 shrink-0 place-items-center rounded-full bg-surface text-ink">
+              <div className="grid size-11 shrink-0 place-items-center rounded-full bg-surface text-brand">
                 <SymbolIcon value={r.emoji} size={20} />
               </div>
               <div className="min-w-0 flex-1">

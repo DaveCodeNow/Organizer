@@ -165,7 +165,7 @@ export default function ShoppingList() {
                 onClick={() => addRecipe(r)}
                 className="flex shrink-0 items-center gap-1.5 rounded-full border border-line bg-surface px-3.5 py-2 text-sm font-medium transition active:scale-95"
               >
-                <SymbolIcon value={r.emoji} size={16} className="text-muted" />
+                <SymbolIcon value={r.emoji} size={16} className="text-brand" />
                 {r.name}
                 <Plus size={14} className="text-brand" />
               </button>
@@ -195,7 +195,7 @@ export default function ShoppingList() {
           {!compact && groups.map((g) => (
             <section key={g.id}>
               <h2 className="mb-2.5 flex items-center gap-2 font-serif text-[17px] leading-[1.1] font-[600]">
-                <g.icon size={17} className="text-muted" />
+                <g.icon size={17} className="text-brand" />
                 {g.label}
               </h2>
               <ul className="overflow-hidden rounded-3xl bg-surface">
@@ -233,7 +233,7 @@ export default function ShoppingList() {
             onClick={toggleView}
             className="flex w-full items-center gap-3 rounded-full px-4 py-3.5 text-left text-[15px] font-medium transition hover:bg-bg"
           >
-            <Rows3 size={20} />
+            <Rows3 size={20} className="shrink-0 text-brand" />
             <span className="flex-1">
               Kompakte Ansicht
               <span className="block text-xs font-normal text-muted">Ohne Überschriften, Kategorie als Icon</span>
@@ -285,7 +285,7 @@ function Row({ item, icon: Icon }: { item: ListItem; icon?: LucideIcon }) {
     <li className="group flex items-center gap-3 border-b border-line/70 pr-2 pl-4 last:border-0">
       <button type="button" onClick={() => toggleItem(item)} className={`flex flex-1 items-center gap-3 py-2 text-left ${Icon ? 'min-h-12' : 'min-h-14'}`}>
         <CheckCircle checked={item.checked} />
-        {Icon && <Icon size={16} className="shrink-0 text-muted" aria-hidden />}
+        {Icon && <Icon size={16} className="shrink-0 text-brand" aria-hidden />}
         <span className={`flex-1 text-[15px] transition ${item.checked ? 'text-muted line-through' : 'font-medium'}`}>{item.name}</span>
         {item.quantity && (
           <span className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${item.checked ? 'text-muted' : 'bg-bg text-ink/80'}`}>

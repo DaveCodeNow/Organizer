@@ -223,7 +223,7 @@ function CategoryBar({ entry, cat, top, max }: { entry: CatEntry; cat?: GoalCate
   return (
     <li>
       <div className="mb-1.5 flex items-center gap-2 text-sm">
-        {cat?.emoji && <SymbolIcon value={cat.emoji} size={15} className="shrink-0 text-muted" />}
+        {cat?.emoji && <SymbolIcon value={cat.emoji} size={15} className="shrink-0 text-brand" />}
         <span className={`min-w-0 flex-1 truncate ${top ? 'font-semibold' : ''}`}>{cat?.name ?? 'Ohne Kategorie'}</span>
         <span className="shrink-0 text-muted">
           {goal ? `${entry.points} / ${goal}` : entry.points}
