@@ -21,6 +21,8 @@
   --color-brand-ink: #3f5e4b;
 
   --color-caramel: #c9a27e; /* dezente Markierungen */
+  --color-flame: #d9773a; /* nur für die Serien-Flamme bei Habits */
+  --color-flame-soft: #f2c77a; /* Kern der Flamme */
 
   /* Terrakotta, sparsam: Hinweise (Kündigungsfrist, überfällig) und Löschen */
   --color-warn: #9a5b3c;

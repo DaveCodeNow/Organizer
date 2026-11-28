@@ -1,6 +1,6 @@
 import { useState, type FormEvent } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
-import { Check, Pencil, Plus, Repeat } from 'lucide-react'
+import { Check, Flame, Pencil, Plus, Repeat } from 'lucide-react'
 import { SymbolIcon } from '../../components/icons'
 import { db, type Habit, type HabitFrequency, newId } from '../../lib/db'
 import { addDays, startOfWeek, today, weekDays } from '../../lib/dates'
@@ -110,18 +110,32 @@ function HabitCard({ habit, days, showCategory, onEdit }: { habit: Habit; days: 
   const log = new Set(habit.log)
   const t = today()
 
-  let status: string
+  // Serie mit kleiner Flamme vorn, danach der Rest des Status
+  let streakText: string | undefined
+  let rest: string[]
   if (habit.frequency === 'daily') {
     const streak = dailyStreak(log)
-    status = [streak ? `${streak} ${streak === 1 ? 'Tag' : 'Tage'} in Folge` : 'Noch keine Serie', !log.has(t) && 'heute offen'].filter(Boolean).join(' · ')
+    streakText = streak ? `${streak} ${streak === 1 ? 'Tag' : 'Tage'} in Folge` : undefined
+    rest = [!streak ? 'Noch keine Serie' : '', !log.has(t) ? 'heute offen' : ''].filter(Boolean)
   } else {
     const target = habit.perWeek ?? 1
     const count = days.filter((d) => log.has(d)).length
     const streak = weeklyStreak(habit.log, target)
-    status = [count >= target ? `${count} von ${target} diese Woche geschafft` : `${count} von ${target} diese Woche`, streak && `Serie: ${streak} ${streak === 1 ? 'Woche' : 'Wochen'}`]
-      .filter(Boolean)
-      .join(' · ')
+    streakText = streak ? `${streak} ${streak === 1 ? 'Woche' : 'Wochen'} in Folge` : undefined
+    rest = [count >= target ? `${count} von ${target} diese Woche geschafft` : `${count} von ${target} diese Woche`]
   }
+  const status = (
+    <>
+      {streakText && (
+        <span className="inline-flex items-center gap-1 font-semibold text-ink">
+          <Flame size={15} className="-mt-0.5 text-flame" fill="var(--color-flame-soft)" aria-hidden />
+          {streakText}
+        </span>
+      )}
+      {streakText && rest.length > 0 && ' · '}
+      {rest.join(' · ')}
+    </>
+  )
 
   return (
     <article className="rounded-3xl bg-surface p-4">

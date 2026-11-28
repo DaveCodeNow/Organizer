@@ -38,7 +38,7 @@ UI-Texte sind auf Deutsch.
 
 ## Design
 - Charakter: warm, ruhig, wohnlich – eher gemütliches Zuhause als Produktivitäts-Tool. Viel Luft, weiche Formen, gedeckte Naturtöne. Keine grellen Töne, keine Verläufe, keine Schatten, **keine Emojis**.
-- Farben nur über Tokens in `src/index.css`: `bg` (Creme), `surface` (Elfenbein, auch Text auf Akzent), `sand` (= `brand-soft`, gedämpfte Hervorhebung), `ink`, `muted`, `line`, `brand` (Salbeigrün, einzige kräftige Farbe, pro Ansicht nur ein dominanter Einsatz), `caramel` (dezente Markierungen), `warn`/`warn-soft` (Terrakotta, sparsam: Warnungen, Löschen). Kein `text-muted` auf `sand` (Kontrast < 4.5).
+- Farben nur über Tokens in `src/index.css`: `bg` (Creme), `surface` (Elfenbein, auch Text auf Akzent), `sand` (= `brand-soft`, gedämpfte Hervorhebung), `ink`, `muted`, `line`, `brand` (Salbeigrün, einzige kräftige Farbe, pro Ansicht nur ein dominanter Einsatz), `caramel` (dezente Markierungen), `warn`/`warn-soft` (Terrakotta, sparsam: Warnungen, Löschen). `flame`/`flame-soft` nur für die farbige Serien-Flamme (lucide `Flame`) bei Habits. Kein `text-muted` auf `sand` (Kontrast < 4.5).
 - Tiefe über Farbabstufung (Creme → Elfenbein) statt Schatten; feine Linien in `line`.
 - Schrift: `font-serif` (Fraunces, 400 oder `font-[600]`, Zeilenhöhe ~1.1) nur für Überschriften/Titel; sonst DM Sans (400/500/700 – `font-semibold` ist auf 500 gemappt). Betonte Wörter in Überschriften als `<em>` → kursiv in Akzentfarbe (PageHeader-`title` nimmt ReactNode).
 - Formen: Karten `rounded-3xl` (= 1.75rem), Buttons/Inputs/Chips in Pillenform (`rounded-full`), Textareas über `fieldClass`.
