@@ -1,6 +1,6 @@
 import { useMemo, useState, type FormEvent } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
-import { ChevronDown, Plus, CircleCheck, Repeat as RepeatIcon } from 'lucide-react'
+import { ChevronDown, Plus, CircleCheck, Repeat as RepeatIcon, RotateCcw } from 'lucide-react'
 import { SymbolIcon } from '../../components/icons'
 import { db, type Level, type Repeat, type Todo, newId } from '../../lib/db'
 import { endOfWeek, formatDate, fromISO, relativeDate, startOfWeek, today } from '../../lib/dates'
@@ -146,12 +146,13 @@ function TodoRow({ todo, group, planned, colors, onEdit }: { todo: Todo; group?:
     ? `am ${formatDate(todo.due)}`
     : !todo.due || group === 'heute' || todo.done ? undefined : overdue ? `seit ${formatDate(todo.due)}` : `bis ${relativeDate(todo.due)}`
   const title = planned ? `Erscheint ab ${formatDate(visibleFrom(todo))}` : undefined
-  // Farbmodus: nur offene To-dos in den Gruppen bekommen einen Streifen (erledigte/geplante haben keine `group`)
+  // Farbmodus: Fläche hinter dem Abhak-Kreis (bis zwischen Kreis und Text) nach Dringlichkeit.
+  // Nur offene To-dos in den Gruppen (erledigte/geplante haben keine `group`).
   const stripe = colors && !todo.done ? urgencyOf(group) : undefined
 
   return (
     <li className="relative flex items-center border-b border-line/70 pr-4 last:border-0">
-      {stripe && <span aria-hidden className={`absolute inset-y-2.5 left-0 w-1 rounded-r-full ${stripe}`} />}
+      {stripe && <span aria-hidden className={`absolute inset-y-0 left-0 w-12 ${stripe}`} />}
       <button
         type="button"
         aria-label={todo.done ? 'Als offen markieren' : 'Erledigt'}
@@ -159,9 +160,12 @@ function TodoRow({ todo, group, planned, colors, onEdit }: { todo: Todo; group?:
           toggleTodo(todo)
           if (points && level && !todo.done) toast(`+ ${pointsLabel(LEVEL_POINTS[level])}`)
         }}
-        className="grid min-h-14 w-14 shrink-0 place-items-center"
+        className="relative grid min-h-14 w-14 shrink-0 place-items-center"
       >
-        <CheckCircle checked={todo.done} />
+        {/* Auf der Farbfläche bekommt der Kreis eine helle Füllung, sonst verschwindet der Karamell-Rand */}
+        <span className={`rounded-full ${stripe ? 'bg-surface' : ''}`}>
+          <CheckCircle checked={todo.done} />
+        </span>
       </button>
       <button type="button" onClick={onEdit} className="flex min-h-14 min-w-0 flex-1 items-center gap-3 py-2 text-left">
         <span className={`min-w-0 flex-1 text-[15px] ${todo.done ? 'text-muted line-through' : 'font-medium'}`}>
@@ -278,6 +282,19 @@ function TodoEditor({ todo, onClose }: { todo: Draft; onClose: () => void }) {
             {todo.id ? 'Speichern' : 'Hinzufügen'}
           </Button>
         </div>
+        {/* Versehentlich abgehakt? Dezent unter den Buttons wieder öffnen (entfernt auch ein offenes Folge-To-do) */}
+        {todo.id && todo.done && (
+          <button
+            type="button"
+            onClick={async () => {
+              await toggleTodo(todo as Todo)
+              onClose()
+            }}
+            className="mx-auto flex h-10 items-center gap-1.5 px-3 text-sm text-muted"
+          >
+            <RotateCcw size={14} /> Wieder öffnen
+          </button>
+        )}
       </form>
     </Sheet>
   )

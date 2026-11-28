@@ -49,13 +49,13 @@ export function groupOf(due: string | undefined): GroupId {
 }
 
 /**
- * Farbmodus der To-do-Liste: Streifenfarbe nach Dringlichkeit, abgeleitet aus der Gruppe (also nur aus dem Fälligkeitsdatum).
+ * Farbmodus der To-do-Liste: Farbfläche nach Dringlichkeit (Token mit 45 % Deckkraft), abgeleitet aus der Gruppe (also nur aus dem Fälligkeitsdatum).
  * Ab „Diesen Monat“ bewusst ohne Farbe. Klassen ausgeschrieben lassen, damit Tailwind sie findet.
  */
 const URGENCY: Partial<Record<GroupId, string>> = {
-  überfällig: 'bg-urg-4',
-  heute: 'bg-urg-3',
-  woche: 'bg-urg-2',
-  naechste: 'bg-urg-1',
+  überfällig: 'bg-urg-4/45',
+  heute: 'bg-urg-3/45',
+  woche: 'bg-urg-2/45',
+  naechste: 'bg-urg-1/45',
 }
 export const urgencyOf = (group: GroupId | undefined) => (group ? URGENCY[group] : undefined)

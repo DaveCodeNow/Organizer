@@ -35,7 +35,7 @@
   --color-cat-drogerie: #f0dee6;
   --color-cat-sonstiges: #ece6dc;
 
-  /* Dringlichkeit der To-dos (Farbmodus): schmaler Streifen links, von warm (überfällig) nach kühl (nächste Woche) */
+  /* Dringlichkeit der To-dos (Farbmodus): Fläche hinter dem Abhak-Kreis (mit 45 % Deckkraft), von warm (überfällig) nach kühl (nächste Woche) */
   --color-urg-4: #b8735a; /* überfällig – Terrakotta */
   --color-urg-3: #d49a6a; /* heute – Apricot */
   --color-urg-2: #dcc08a; /* diese Woche – Honig */
