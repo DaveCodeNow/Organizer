@@ -3,7 +3,7 @@ import { useLiveQuery } from 'dexie-react-hooks'
 import { ChevronDown, Plus, CircleCheck, Repeat as RepeatIcon, RotateCcw } from 'lucide-react'
 import { SymbolIcon } from '../../components/icons'
 import { db, type Level, type Repeat, type Todo, newId } from '../../lib/db'
-import { endOfWeek, formatDate, fromISO, relativeDate, startOfWeek, today } from '../../lib/dates'
+import { formatDate, fromISO, relativeDate, startOfWeek, today } from '../../lib/dates'
 import { Button, CheckCircle, Chips, EmptyState, Field, SectionTitle, Sheet, inputClass } from '../../components/ui'
 import { GROUPS, GROUP_LABELS, HORIZONS, groupOf, horizonOf, isFixed, urgencyOf, type GroupId } from './horizons'
 import { CategoryPicker, createCategory, extractHashtag, findCategory, useCategories } from './categories'
@@ -39,7 +39,7 @@ export function Todos({ onReport, colors }: { onReport: (week: string) => void; 
   return (
     <>
       <div className="px-5 pt-2">
-        <Button variant="secondary" className="w-full" onClick={() => setEditing({ title: '', due: endOfWeek() })}>
+        <Button variant="secondary" className="w-full" onClick={() => setEditing({ title: '', due: today(), fixed: true })}>
           <Plus size={18} /> Neues To-do
         </Button>
       </div>
