@@ -73,3 +73,20 @@ export function isFixed(t: Pick<Todo, 'due' | 'fixed' | 'repeat'>) {
   const monthEnd = new Date(d.getFullYear(), d.getMonth() + 1, 0).getDate() === d.getDate()
   return d.getDay() !== 0 && !monthEnd
 }
+
+/** „9:00–11:30“ bzw. „ab 9:00“ – oder undefined ohne Uhrzeit. */
+export function timeLabel(t: Pick<Todo, 'start' | 'end'>) {
+  const f = (s: string) => s.replace(/^0(?=\d)/, '')
+  if (!t.start) return undefined
+  return t.end ? `${f(t.start)}–${f(t.end)}` : `ab ${f(t.start)}`
+}
+
+/** Läuft der Zeitraum gerade? (Nur sinnvoll für heute fällige To-dos) */
+export function isNow(t: Pick<Todo, 'start' | 'end'>, now = new Date()) {
+  if (!t.start || !t.end) return false
+  const hm = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`
+  return t.start <= hm && hm < t.end
+}
+
+/** Sortierung innerhalb eines Tages: mit Uhrzeit zuerst (chronologisch), dann ohne. */
+export const byTime = (a: Pick<Todo, 'start'>, b: Pick<Todo, 'start'>) => (a.start ?? '99').localeCompare(b.start ?? '99')

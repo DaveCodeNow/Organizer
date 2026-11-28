@@ -5,8 +5,8 @@ import { SymbolIcon } from '../../components/icons'
 import { db, type Level, type Repeat, type Todo, newId } from '../../lib/db'
 import { formatDate, fromISO, relativeDate, startOfWeek, today } from '../../lib/dates'
 import { Button, CheckCircle, Chips, EmptyState, Field, SectionTitle, Sheet, inputClass } from '../../components/ui'
-import { GROUPS, GROUP_LABELS, HORIZONS, groupOf, horizonOf, isFixed, urgencyOf, type GroupId } from './horizons'
-import { CategoryPicker, createCategory, extractHashtag, findCategory, useCategories } from './categories'
+import { GROUPS, GROUP_LABELS, HORIZONS, byTime, groupOf, horizonOf, isFixed, isNow, timeLabel, urgencyOf, type GroupId } from './horizons'
+import { CategoryPicker, createCategory, extractHashtag, findCategory, useCategories, type CategoryInfo } from './categories'
 import { LEVEL_POINTS, levelInfo, nextLevel, pointsLabel, usePointsSettings, weekStats } from './points'
 import { LevelDots, LevelPicker, ReviewCard, WeekProgress } from './PointsUI'
 import { toast } from '../../components/Toast'
@@ -28,7 +28,7 @@ export function Todos({ onReport, colors }: { onReport: (week: string) => void; 
   const { groups, done, planned } = useMemo(() => {
     // Wiederkehrende To-dos mit fernem Termin erst kurz vorher zeigen (z. B. jährliche 4 Wochen vorher)
     const planned = (todos ?? []).filter((t) => isPlanned(t)).sort((a, b) => a.due!.localeCompare(b.due!))
-    const open = (todos ?? []).filter((t) => !t.done && !isPlanned(t)).sort((a, b) => (a.due ?? '9999').localeCompare(b.due ?? '9999') || a.createdAt - b.createdAt)
+    const open = (todos ?? []).filter((t) => !t.done && !isPlanned(t)).sort((a, b) => (a.due ?? '9999').localeCompare(b.due ?? '9999') || byTime(a, b) || a.createdAt - b.createdAt)
     const groups = GROUPS.map((id) => ({ id, items: open.filter((t) => groupOf(t.due) === id) })).filter((g) => g.items.length > 0)
     const done = (todos ?? []).filter((t) => t.done).sort((a, b) => (b.doneAt ?? 0) - (a.doneAt ?? 0))
     return { groups, done, planned }
@@ -69,9 +69,15 @@ export function Todos({ onReport, colors }: { onReport: (week: string) => void; 
                 <span className="font-normal">· {g.items.length}</span>
               </SectionTitle>
               <ul className="overflow-hidden rounded-3xl bg-surface">
-                {g.items.map((t) => (
-                  <TodoRow key={t.id} todo={t} group={g.id} colors={colors} onEdit={() => setEditing(t)} />
-                ))}
+                {byCategory(g.items, cats).map((b) => [
+                  b.cat && (
+                    <li key={`cat-${b.cat.id}`} className="flex items-center gap-1.5 px-4 pt-3 pb-1 text-xs font-semibold text-muted">
+                      <SymbolIcon value={b.cat.emoji} size={14} className="shrink-0 text-brand" />
+                      <span className="truncate">{b.cat.name}</span>
+                    </li>
+                  ),
+                  ...b.items.map((t) => <TodoRow key={t.id} todo={t} group={g.id} colors={colors} hideCategory onEdit={() => setEditing(t)} />),
+                ])}
               </ul>
             </section>
           ))}
@@ -134,17 +140,43 @@ export function Todos({ onReport, colors }: { onReport: (week: string) => void; 
   )
 }
 
-function TodoRow({ todo, group, planned, colors, onEdit }: { todo: Todo; group?: GroupId; planned?: boolean; colors?: boolean; onEdit: () => void }) {
+function TodoRow({
+  todo,
+  group,
+  planned,
+  colors,
+  hideCategory,
+  onEdit,
+}: {
+  todo: Todo
+  group?: GroupId
+  planned?: boolean
+  colors?: boolean
+  /** In den Zeitgruppen steht die Kategorie einmal als Zwischenüberschrift, nicht an jedem To-do */
+  hideCategory?: boolean
+  onEdit: () => void
+}) {
   const cats = useCategories()
-  // Nur das Symbol der Kategorie, dezent vor dem Titel – keine Plakette.
-  const catEmoji = findCategory(cats, todo.category)?.emoji
+  // Sonst (Geplant, Erledigt) nur das Symbol der Kategorie, dezent vor dem Titel – keine Plakette.
+  const catEmoji = hideCategory ? undefined : findCategory(cats, todo.category)?.emoji
   const points = usePointsSettings().enabled
   const level = todo.level
   const overdue = group === 'überfällig'
-  // In der Gruppe „Heute“ ist das Datum überflüssig, sonst „bis Sonntag“ bzw. „seit 3. Nov.“
+  // In der Gruppe „Heute“ ist das Datum überflüssig (dort nur die Uhrzeit), sonst „Fr · 9:00–11:00“, „bis Sonntag“ bzw. „seit 3. Nov.“
+  const time = timeLabel(todo)
   const label = planned && todo.due
     ? `am ${formatDate(todo.due)}`
-    : !todo.due || group === 'heute' || todo.done ? undefined : overdue ? `seit ${formatDate(todo.due)}` : isFixed(todo) ? relativeDate(todo.due) : `bis ${relativeDate(todo.due)}`
+    : !todo.due || todo.done
+      ? undefined
+      : overdue
+        ? `seit ${formatDate(todo.due)}`
+        : group === 'heute'
+          ? time
+          : isFixed(todo)
+            ? [relativeDate(todo.due), time].filter(Boolean).join(' · ')
+            : `bis ${relativeDate(todo.due)}`
+  // Läuft das Zeitfenster gerade, wird die Uhrzeit dezent hervorgehoben
+  const now = group === 'heute' && !todo.done && isNow(todo)
   const title = planned ? `Erscheint ab ${formatDate(visibleFrom(todo))}` : undefined
   // Farbmodus: Fläche hinter dem Abhak-Kreis (bis zwischen Kreis und Text) nach Dringlichkeit.
   // Nur offene To-dos in den Gruppen (erledigte/geplante haben keine `group`).
@@ -174,7 +206,7 @@ function TodoRow({ todo, group, planned, colors, onEdit }: { todo: Todo; group?:
         </span>
         {todo.repeat && !todo.done && <RepeatIcon size={14} className="shrink-0 text-muted" aria-label={todo.due ? repeatLabel(todo.repeat, todo.due) : 'Wiederkehrend'} />}
         {label && (
-          <span title={title} className={`shrink-0 rounded-full px-2.5 py-0.5 text-xs font-medium ${overdue ? 'bg-warn-soft text-warn' : 'bg-bg text-muted'}`}>{label}</span>
+          <span title={title} className={`shrink-0 rounded-full px-2.5 py-0.5 text-xs font-medium ${overdue ? 'bg-warn-soft text-warn' : now ? 'bg-sand text-ink' : 'bg-bg text-muted'}`}>{label}</span>
         )}
         {points && level && todo.done && <span className="shrink-0 text-xs font-medium text-muted">+{LEVEL_POINTS[level]}</span>}
       </button>
@@ -193,6 +225,18 @@ function TodoRow({ todo, group, planned, colors, onEdit }: { todo: Todo; group?:
   )
 }
 
+/**
+ * To-dos einer Zeitgruppe nach Kategorie bündeln: zuerst die ohne Kategorie (ohne Überschrift),
+ * dann je Kategorie in der Reihenfolge der Kategorien. Innerhalb bleibt die Sortierung (Datum, Uhrzeit) erhalten.
+ */
+function byCategory(items: Todo[], cats: CategoryInfo[]) {
+  const loose = items.filter((t) => !findCategory(cats, t.category))
+  return [
+    ...(loose.length ? [{ cat: undefined, items: loose }] : []),
+    ...cats.map((cat) => ({ cat, items: items.filter((t) => t.category === cat.id) })).filter((b) => b.items.length > 0),
+  ]
+}
+
 type Draft = Partial<Todo> & { title: string }
 
 function TodoEditor({ todo, onClose }: { todo: Draft; onClose: () => void }) {
@@ -203,6 +247,10 @@ function TodoEditor({ todo, onClose }: { todo: Draft; onClose: () => void }) {
   const [repeat, setRepeat] = useState<Repeat | undefined>(todo.repeat)
   // Fester Tag (Kalender) vs. Zeitraum: eigenes Datum und „Heute“ sind fest, die anderen Zeiträume nicht
   const [fixed, setFixed] = useState(() => (todo.id ? isFixed(todo) : !!todo.fixed))
+  // Optionales Zeitfenster, nur bei festem Tag (z. B. Lerntag: 9:00–11:00 Kapitel 3)
+  const [start, setStart] = useState(todo.start ?? '')
+  const [end, setEnd] = useState(todo.end ?? '')
+  const endInvalid = !!start && !!end && end <= start
   const points = usePointsSettings().enabled
 
   // Wiederholung braucht einen Tag – ohne Datum wird heute vorgeschlagen.
@@ -224,7 +272,9 @@ function TodoEditor({ todo, onClose }: { todo: Draft; onClose: () => void }) {
     const rep = due ? repeat : undefined
     // Ankertag nur neu setzen, wenn sich das Datum geändert hat (sonst wird der 31. nach dem April zum 30.)
     const repeatDay = rep && due ? (due === todo.due && todo.repeatDay ? todo.repeatDay : fromISO(due).getDate()) : undefined
-    const data = { title: clean, due, fixed: due ? fixed : undefined, category: cat, level: points ? level : todo.level, repeat: rep, repeatDay }
+    const timed = !!due && (fixed || !!rep) && !!start
+    const times = { start: timed ? start : undefined, end: timed && end && !endInvalid ? end : undefined }
+    const data = { title: clean, due, fixed: due ? fixed : undefined, ...times, category: cat, level: points ? level : todo.level, repeat: rep, repeatDay }
     if (todo.id) await db.todos.update(todo.id, data)
     else await db.todos.add({ ...data, id: newId(), done: false, createdAt: Date.now() } as Todo)
     onClose()
@@ -258,8 +308,42 @@ function TodoEditor({ todo, onClose }: { todo: Draft; onClose: () => void }) {
             }}
             className={inputClass}
           />
-          <p className="text-xs text-muted">{due ? (fixed || repeat ? `Am ${relativeDate(due)} – steht im Kalender` : `Fällig bis ${relativeDate(due)}`) : 'Ohne Termin – oder eigenes Datum wählen'}</p>
+          <p className="text-xs text-muted">{due ? (fixed || repeat ? `${/^(Heute|Morgen|Gestern)$/.test(relativeDate(due)) ? relativeDate(due) : `Am ${relativeDate(due)}`} – steht im Kalender` : `Fällig bis ${relativeDate(due)}`) : 'Ohne Termin – oder eigenes Datum wählen'}</p>
         </div>
+
+        {due && (fixed || repeat) && (
+          <div className="space-y-2">
+            <span className="flex items-center justify-between text-sm font-semibold">
+              Uhrzeit <span className="font-normal text-muted">optional</span>
+            </span>
+            <div className="grid grid-cols-2 gap-2">
+              <label className="space-y-1">
+                <span className="block px-1 text-xs text-muted">Von</span>
+                <input type="time" value={start} onChange={(e) => setStart(e.target.value)} className={inputClass} />
+              </label>
+              <label className="space-y-1">
+                <span className="block px-1 text-xs text-muted">Bis</span>
+                <input type="time" value={end} disabled={!start} onChange={(e) => setEnd(e.target.value)} className={`${inputClass} disabled:opacity-40`} />
+              </label>
+            </div>
+            {endInvalid ? (
+              <p className="text-xs text-warn">Das Ende liegt vor dem Beginn – es wird nicht gespeichert.</p>
+            ) : (
+              (start || end) && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setStart('')
+                    setEnd('')
+                  }}
+                  className="h-8 px-1 text-xs text-muted"
+                >
+                  Ohne Uhrzeit
+                </button>
+              )
+            )}
+          </div>
+        )}
 
         <div className="space-y-2">
           <span className="block text-sm font-semibold">Wiederholen</span>

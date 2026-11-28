@@ -87,6 +87,8 @@ export async function toggleTodo(t: Todo) {
     level: t.level,
     repeat: t.repeat,
     repeatDay: t.repeatDay,
+    start: t.start,
+    end: t.end,
     createdAt: Date.now(),
   }
   await db.transaction('rw', db.todos, async () => {

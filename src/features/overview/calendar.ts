@@ -1,7 +1,7 @@
 import { useLiveQuery } from 'dexie-react-hooks'
 import { db, type FixedCost, type Goal, type Todo } from '../../lib/db'
 import { addDays, fromISO, startOfWeek, toISO } from '../../lib/dates'
-import { isFixed } from '../goals/horizons'
+import { byTime, isFixed } from '../goals/horizons'
 import { cancelDeadline } from './costs'
 
 /*
@@ -32,7 +32,7 @@ export function useCalendar() {
       if (deadline) add(deadline, { kind: 'kuendigen', cost: c })
       if (c.contractEnd) add(c.contractEnd, { kind: 'ende', cost: c })
     }
-    for (const list of map.values()) list.sort((a, b) => ORDER[a.kind] - ORDER[b.kind] || (a.kind === 'todo' && b.kind === 'todo' ? Number(a.todo.done) - Number(b.todo.done) : 0))
+    for (const list of map.values()) list.sort((a, b) => ORDER[a.kind] - ORDER[b.kind] || (a.kind === 'todo' && b.kind === 'todo' ? Number(a.todo.done) - Number(b.todo.done) || byTime(a.todo, b.todo) : 0))
     return map
   }, [])
 }

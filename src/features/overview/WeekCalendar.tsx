@@ -6,6 +6,7 @@ import { navigate } from '../../lib/nav'
 import { CheckCircle, Sheet, inputClass } from '../../components/ui'
 import { toast } from '../../components/Toast'
 import { toggleTodo } from '../goals/repeat'
+import { timeLabel } from '../goals/horizons'
 import { createCategory, extractHashtag } from '../goals/categories'
 import { LEVEL_POINTS, pointsLabel, usePointsSettings } from '../goals/points'
 import { WEEKDAY_LABELS, dotsOf, eventTitle, monthGrid, useCalendar, type CalEvent } from './calendar'
@@ -165,7 +166,8 @@ function DaySheet({ day, events, onEditCost, onClose }: { day: string; events: C
                 {e.kind === 'todo' ? (
                   <button type="button" onClick={() => check(e.todo)} className="flex min-h-12 w-full items-center gap-3 px-4 text-left">
                     <CheckCircle checked={e.todo.done} />
-                    <span className={`text-[15px] ${e.todo.done ? 'text-muted line-through' : 'font-medium'}`}>{e.todo.title}</span>
+                    <span className={`min-w-0 flex-1 text-[15px] ${e.todo.done ? 'text-muted line-through' : 'font-medium'}`}>{e.todo.title}</span>
+                    {timeLabel(e.todo) && <span className="shrink-0 text-xs text-muted tabular-nums">{timeLabel(e.todo)}</span>}
                   </button>
                 ) : (
                   <button
