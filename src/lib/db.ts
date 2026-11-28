@@ -91,6 +91,12 @@ export interface Todo {
   level?: Level
   /** Erledigt und aus der Liste entfernt – bleibt für die Wochenrückblicke erhalten */
   archived?: boolean
+  /** Wiederholung; braucht ein Fälligkeitsdatum. Beim Abhaken entsteht das nächste To-do (features/goals/repeat.ts). */
+  repeat?: Repeat
+  /** Tag im Monat, an dem sich das To-do wiederholt (damit der 31. nach einem kurzen Monat nicht zum 30. wird) */
+  repeatDay?: number
+  /** Beim Abhaken angelegtes Folge-To-do – wird beim Wieder-Öffnen entfernt */
+  nextId?: string
   /** Veraltet (bis DB v4), in v5 zu `category` migriert */
   tags?: string[]
   createdAt: number
@@ -98,6 +104,8 @@ export interface Todo {
 
 /** Punkte-Stufen für To-dos. Gespeichert wird nur die Stufe, die Punktzahl kommt aus LEVEL_POINTS (features/goals/points.ts). */
 export type Level = 'leicht' | 'mittel' | 'wichtig'
+
+export type Repeat = 'woche' | 'monat' | 'quartal' | 'halbjahr' | 'jahr'
 
 export type HabitFrequency = 'daily' | 'weekly'
 

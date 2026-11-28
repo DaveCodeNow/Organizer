@@ -1,17 +1,17 @@
 import { useMemo, useState, type FormEvent } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
-import { ChevronDown, Plus, CircleCheck } from 'lucide-react'
+import { ChevronDown, Plus, CircleCheck, Repeat as RepeatIcon } from 'lucide-react'
 import { SymbolIcon } from '../../components/icons'
-import { db, type Level, type Todo, newId } from '../../lib/db'
-import { endOfWeek, formatDate, relativeDate, startOfWeek } from '../../lib/dates'
+import { db, type Level, type Repeat, type Todo, newId } from '../../lib/db'
+import { endOfWeek, formatDate, fromISO, relativeDate, startOfWeek, today } from '../../lib/dates'
 import { Button, CheckCircle, Chips, EmptyState, Field, SectionTitle, Sheet, inputClass } from '../../components/ui'
 import { GROUPS, GROUP_LABELS, HORIZONS, groupOf, horizonOf, type GroupId } from './horizons'
 import { CategoryPicker, createCategory, extractHashtag, findCategory, useCategories } from './categories'
 import { LEVEL_POINTS, levelInfo, nextLevel, pointsLabel, usePointsSettings, weekStats } from './points'
 import { LevelDots, LevelPicker, ReviewCard, WeekProgress } from './PointsUI'
 import { toast } from '../../components/Toast'
+import { REPEATS, repeatLabel, toggleTodo } from './repeat'
 
-export const toggleTodo = (t: Todo) => db.todos.update(t.id, { done: !t.done, doneAt: t.done ? undefined : Date.now() })
 
 export function Todos({ onReport }: { onReport: (week: string) => void }) {
   const all = useLiveQuery(() => db.todos.toArray(), [])
@@ -138,6 +138,7 @@ function TodoRow({ todo, group, onEdit }: { todo: Todo; group?: GroupId; onEdit:
           {catEmoji && <SymbolIcon value={catEmoji} size={15} className="mr-1.5 -mt-0.5 inline-block text-muted" />}
           {todo.title}
         </span>
+        {todo.repeat && !todo.done && <RepeatIcon size={14} className="shrink-0 text-muted" aria-label={todo.due ? repeatLabel(todo.repeat, todo.due) : 'Wiederkehrend'} />}
         {label && (
           <span className={`shrink-0 rounded-full px-2.5 py-0.5 text-xs font-medium ${overdue ? 'bg-warn-soft text-warn' : 'bg-bg text-muted'}`}>{label}</span>
         )}
@@ -165,7 +166,18 @@ function TodoEditor({ todo, onClose }: { todo: Draft; onClose: () => void }) {
   const [due, setDue] = useState(todo.due)
   const [category, setCategory] = useState(todo.category)
   const [level, setLevel] = useState<Level | undefined>(todo.level)
+  const [repeat, setRepeat] = useState<Repeat | undefined>(todo.repeat)
   const points = usePointsSettings().enabled
+
+  // Wiederholung braucht einen Tag – ohne Datum wird heute vorgeschlagen.
+  const chooseRepeat = (r: Repeat | undefined) => {
+    setRepeat(r)
+    if (r && !due) setDue(today())
+  }
+  const changeDue = (d: string | undefined) => {
+    setDue(d)
+    if (!d) setRepeat(undefined)
+  }
 
   const save = async (e: FormEvent) => {
     e.preventDefault()
@@ -173,7 +185,10 @@ function TodoEditor({ todo, onClose }: { todo: Draft; onClose: () => void }) {
     const { title: clean, category: hashtag } = extractHashtag(title)
     if (!clean) return
     const cat = (hashtag && (await createCategory(hashtag))) || category
-    const data = { title: clean, due, category: cat, level: points ? level : todo.level }
+    const rep = due ? repeat : undefined
+    // Ankertag nur neu setzen, wenn sich das Datum geändert hat (sonst wird der 31. nach dem April zum 30.)
+    const repeatDay = rep && due ? (due === todo.due && todo.repeatDay ? todo.repeatDay : fromISO(due).getDate()) : undefined
+    const data = { title: clean, due, category: cat, level: points ? level : todo.level, repeat: rep, repeatDay }
     if (todo.id) await db.todos.update(todo.id, data)
     else await db.todos.add({ ...data, id: newId(), done: false, createdAt: Date.now() } as Todo)
     onClose()
@@ -193,9 +208,21 @@ function TodoEditor({ todo, onClose }: { todo: Draft; onClose: () => void }) {
 
         <div className="space-y-2">
           <span className="block text-sm font-semibold">Zeitraum</span>
-          <Chips value={horizonOf(due)} options={HORIZONS} onChange={(id) => setDue(HORIZONS.find((h) => h.id === id)!.due())} />
-          <input type="date" aria-label="Eigenes Datum" value={due ?? ''} onChange={(e) => setDue(e.target.value || undefined)} className={inputClass} />
+          <Chips value={horizonOf(due)} options={HORIZONS} onChange={(id) => changeDue(HORIZONS.find((h) => h.id === id)!.due())} />
+          <input type="date" aria-label="Eigenes Datum" value={due ?? ''} onChange={(e) => changeDue(e.target.value || undefined)} className={inputClass} />
           <p className="text-xs text-muted">{due ? `Fällig: ${relativeDate(due)}` : 'Ohne Termin – oder eigenes Datum wählen'}</p>
+        </div>
+
+        <div className="space-y-2">
+          <span className="block text-sm font-semibold">Wiederholen</span>
+          <Chips
+            value={repeat ?? ''}
+            options={[{ id: '', label: 'Nie' }, ...REPEATS]}
+            onChange={(id) => chooseRepeat((id || undefined) as Repeat | undefined)}
+          />
+          <p className="text-xs text-muted">
+            {repeat && due ? `${repeatLabel(repeat, due)} – nach dem Abhaken kommt das nächste To-do` : 'Tag oben wählen, dann den Rhythmus'}
+          </p>
         </div>
 
         <div>
