@@ -1,6 +1,6 @@
 import { useEffect, useState, type ReactNode } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
-import { AlertCircle, ChevronRight, CircleCheck, Plus, ShoppingBasket, Target, type LucideIcon } from 'lucide-react'
+import { AlertCircle, ChevronDown, ChevronRight, CircleCheck, FileText, Plus, ShoppingBasket, Target, type LucideIcon } from 'lucide-react'
 import { db, type CostKind, type FixedCost } from '../../lib/db'
 import { startOfWeek, today } from '../../lib/dates'
 import { navigate } from '../../lib/nav'
@@ -18,6 +18,12 @@ export default function Overview() {
   const todos = useLiveQuery(() => db.todos.filter((t) => !t.done).toArray(), [])
   const goals = useLiveQuery(() => db.goals.filter((g) => !g.done).toArray(), [])
   const [editing, setEditing] = useState<ReturnType<typeof toDraft> | null>(null)
+  // Verträge sind standardmäßig eingeklappt; der Zustand wird pro Gerät gemerkt.
+  const [contractsOpen, setContractsOpen] = useState(() => readFlag(CONTRACTS_KEY))
+  const toggleContracts = () => {
+    setContractsOpen(!contractsOpen)
+    writeFlag(CONTRACTS_KEY, !contractsOpen)
+  }
   const points = usePointsSettings()
   const weekPoints = useLiveQuery(
     async () => (points.enabled ? weekStats(await db.todos.toArray(), await db.goalCategories.toArray(), startOfWeek()).total : undefined),
@@ -33,6 +39,8 @@ export default function Overview() {
 
   const edit = (kind: CostKind, c?: FixedCost) => setEditing(toDraft(kind, c))
   const total = costs.reduce((sum, c) => sum + perMonth(c), 0)
+  const contracts = costs.filter((c) => c.kind !== 'sonstig')
+  const contractsTotal = contracts.reduce((sum, c) => sum + perMonth(c), 0)
   const others = costs.filter((c) => c.kind === 'sonstig').sort((a, b) => perMonth(b) - perMonth(a))
   const alerts = costs.flatMap((c) => {
     const s = contractStatus(c)
@@ -53,12 +61,22 @@ export default function Overview() {
       <PageHeader eyebrow={<Brand />} title={<>Dein <em>Zuhause</em></>} subtitle={dateLabel} action={<AccountButton />} />
 
       <div className="space-y-6 px-5">
-        {/* Fixkosten gesamt */}
-        <section className="rounded-[2rem] bg-brand px-6 py-6 text-surface">
-          <p className="text-sm font-medium text-surface/85">Fixkosten pro Monat</p>
-          <p className="mt-2 font-serif text-[44px] leading-[1.1] font-normal tracking-tight">{euro(total)}</p>
-          <p className="mt-2 text-sm text-surface/85">
-            {costs.length === 0 ? 'Noch keine Posten erfasst' : `${costs.length} Posten · ${euro(total * 12)} im Jahr`}
+        {/* Kurzinfos aus den anderen Modulen */}
+        <section className="grid grid-cols-3 gap-3">
+          <Tile icon={ShoppingBasket} value={openItems} label="Artikel offen" onClick={() => navigate('list')} />
+          <Tile icon={CircleCheck} value={dueTodos} label="To-dos fällig" warn={dueTodos > 0} onClick={() => navigate('goals')} />
+          <Tile icon={Target} value={goals.length} label={goals.length ? `Ziele · ${goalProgress} %` : 'Ziele aktiv'} onClick={() => navigate('goals')} />
+        </section>
+        {weekPoints !== undefined && <WeekProgress points={weekPoints} goal={points.weeklyGoal} label="diese Woche" onClick={() => navigate('goals')} />}
+
+        {/* Fixkosten gesamt – bewusst zurückhaltend */}
+        <section className="flex items-end justify-between gap-3 rounded-3xl bg-surface px-5 py-4">
+          <div className="min-w-0">
+            <p className="text-sm text-muted">Fixkosten pro Monat</p>
+            <p className="mt-0.5 font-serif text-[26px] leading-[1.1]">{euro(total)}</p>
+          </div>
+          <p className="shrink-0 pb-0.5 text-right text-xs text-muted">
+            {costs.length === 0 ? 'Noch keine Posten' : <>{costs.length} Posten<br />{euro(total * 12)} im Jahr</>}
           </p>
         </section>
 
@@ -82,56 +100,66 @@ export default function Overview() {
           </section>
         )}
 
-        {/* Kurzinfos aus den anderen Modulen */}
-        <section className="grid grid-cols-3 gap-3">
-          <Tile icon={ShoppingBasket} value={openItems} label="Artikel offen" onClick={() => navigate('list')} />
-          <Tile icon={CircleCheck} value={dueTodos} label="To-dos fällig" warn={dueTodos > 0} onClick={() => navigate('goals')} />
-          <Tile icon={Target} value={goals.length} label={goals.length ? `Ziele · ${goalProgress} %` : 'Ziele aktiv'} onClick={() => navigate('goals')} />
-        </section>
-        {weekPoints !== undefined && <WeekProgress points={weekPoints} goal={points.weeklyGoal} label="diese Woche" onClick={() => navigate('goals')} />}
-
         {/* Verträge */}
         <section>
-          <SectionTitle>Verträge</SectionTitle>
-          <div className="space-y-3">
-            {CONTRACTS.map((k) => {
-              const c = costs.find((x) => x.kind === k.id)
-              if (!c) {
+          <button
+            type="button"
+            onClick={toggleContracts}
+            aria-expanded={contractsOpen}
+            className="flex min-h-14 w-full items-center gap-3 rounded-3xl bg-surface px-4 py-3 text-left transition active:scale-[.99]"
+          >
+            <span className="grid size-10 shrink-0 place-items-center rounded-full bg-sand text-ink">
+              <FileText size={19} />
+            </span>
+            <span className="min-w-0 flex-1">
+              <span className="block font-semibold">Verträge</span>
+              <span className="block truncate text-sm text-muted">
+                {contracts.length === 0 ? 'Miete, Strom, Gas, Internet hinterlegen' : `${contracts.length} hinterlegt · ${euro(contractsTotal)} pro Monat`}
+              </span>
+            </span>
+            <ChevronDown size={20} className={`shrink-0 text-muted transition-transform ${contractsOpen ? 'rotate-180' : ''}`} />
+          </button>
+          {contractsOpen && (
+            <div className="mt-3 space-y-3">
+              {CONTRACTS.map((k) => {
+                const c = costs.find((x) => x.kind === k.id)
+                if (!c) {
+                  return (
+                    <button
+                      key={k.id}
+                      type="button"
+                      onClick={() => edit(k.id)}
+                      className="flex w-full items-center gap-3 rounded-3xl border border-dashed border-line p-4 text-left text-muted transition active:scale-[.99]"
+                    >
+                      <span className="grid size-11 place-items-center rounded-full bg-surface">
+                        <k.icon size={20} />
+                      </span>
+                      <span className="flex-1 font-medium">{k.title} hinterlegen</span>
+                      <Plus size={20} />
+                    </button>
+                  )
+                }
+                const lines = [
+                  tariffLine(c) && { text: tariffLine(c)!, tone: 'muted' as const },
+                  tariffCheck(c),
+                  contractStatus(c),
+                ].filter((x) => !!x)
                 return (
-                  <button
-                    key={k.id}
-                    type="button"
-                    onClick={() => edit(k.id)}
-                    className="flex w-full items-center gap-3 rounded-3xl border border-dashed border-line p-4 text-left text-muted transition active:scale-[.99]"
-                  >
-                    <span className="grid size-11 place-items-center rounded-full bg-surface">
-                      <k.icon size={20} />
-                    </span>
-                    <span className="flex-1 font-medium">{k.title} hinterlegen</span>
-                    <Plus size={20} />
-                  </button>
+                  <CostCard key={k.id} icon={k.icon} cost={c} onClick={() => edit(k.id, c)}>
+                    {lines.length > 0 && (
+                      <div className="mt-3 space-y-1 border-t border-line/70 pt-3">
+                        {lines.map((l) => (
+                          <p key={l.text} className={`text-sm ${l.tone === 'warn' ? 'font-medium text-warn' : 'text-muted'}`}>
+                            {l.text}
+                          </p>
+                        ))}
+                      </div>
+                    )}
+                  </CostCard>
                 )
-              }
-              const lines = [
-                tariffLine(c) && { text: tariffLine(c)!, tone: 'muted' as const },
-                tariffCheck(c),
-                contractStatus(c),
-              ].filter((x) => !!x)
-              return (
-                <CostCard key={k.id} icon={k.icon} cost={c} onClick={() => edit(k.id, c)}>
-                  {lines.length > 0 && (
-                    <div className="mt-3 space-y-1 border-t border-line/70 pt-3">
-                      {lines.map((l) => (
-                        <p key={l.text} className={`text-sm ${l.tone === 'warn' ? 'font-medium text-warn' : 'text-muted'}`}>
-                          {l.text}
-                        </p>
-                      ))}
-                    </div>
-                  )}
-                </CostCard>
-              )
-            })}
-          </div>
+              })}
+            </div>
+          )}
         </section>
 
         {/* Weitere Fixkosten */}
@@ -181,6 +209,20 @@ export default function Overview() {
       {editing && <CostEditor draft={editing} onClose={() => setEditing(null)} />}
     </>
   )
+}
+
+const CONTRACTS_KEY = 'overview:contractsOpen'
+function readFlag(key: string) {
+  try {
+    return localStorage.getItem(key) === '1'
+  } catch {
+    return false
+  }
+}
+function writeFlag(key: string, on: boolean) {
+  try {
+    localStorage.setItem(key, on ? '1' : '0')
+  } catch {}
 }
 
 /** Logo und Name der App, dezent über dem Titel der Übersicht. */
