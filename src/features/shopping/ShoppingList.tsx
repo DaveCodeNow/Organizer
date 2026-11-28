@@ -1,8 +1,8 @@
-import { useMemo, useState, type FormEvent } from 'react'
+import { useEffect, useMemo, useState, type FormEvent } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
-import { BookOpen, Bookmark, MoreHorizontal, Plus, Trash2, BookmarkPlus, ListX, Eraser, ShoppingBasket, CircleCheck, ListPlus, Rows3, type LucideIcon } from 'lucide-react'
+import { BookOpen, Bookmark, MoreHorizontal, Plus, Trash2, BookmarkPlus, ListX, Eraser, ShoppingBasket, CircleCheck, ListPlus, Palette, Rows3, type LucideIcon } from 'lucide-react'
 import { SymbolIcon } from '../../components/icons'
-import { addToList, clearChecked, clearList, db, deleteItem, saveListAsTemplate, toggleItem, type ListItem, type Product, type Recipe } from '../../lib/db'
+import { addToList, clearChecked, clearList, db, deleteItem, migrateDrogerie, saveListAsTemplate, toggleItem, type ListItem, type Product, type Recipe } from '../../lib/db'
 import { likelyTypo } from '../../lib/products'
 import { CATEGORIES } from '../../lib/categories'
 import { parseEntry } from '../../lib/parse'
@@ -26,6 +26,16 @@ function readView(): ListView {
   }
 }
 
+// Farbmodus: Einträge in einem Pastellton je Kategorie. Ebenfalls nur pro Gerät gemerkt.
+const COLOR_KEY = 'shopping:colors'
+function readColors() {
+  try {
+    return localStorage.getItem(COLOR_KEY) === '1'
+  } catch {
+    return false
+  }
+}
+
 export default function ShoppingList() {
   const items = useLiveQuery(() => db.listItems.toArray(), [])
   const recipes = useLiveQuery(() => db.recipes.orderBy('name').toArray(), [])
@@ -37,6 +47,16 @@ export default function ShoppingList() {
   const [productsOpen, setProductsOpen] = useState(false)
   const [view, setView] = useState<ListView>(readView)
   const compact = view === 'compact'
+  const [colors, setColors] = useState(readColors)
+  const toggleColors = () => {
+    setColors(!colors)
+    try {
+      localStorage.setItem(COLOR_KEY, colors ? '0' : '1')
+    } catch {}
+  }
+  useEffect(() => {
+    void migrateDrogerie()
+  }, [])
   const toggleView = () => {
     const next: ListView = compact ? 'grouped' : 'compact'
     setView(next)
@@ -188,7 +208,7 @@ export default function ShoppingList() {
           {compact && groups.length > 0 && (
             // Kompakt: gleiche Sortierung wie gruppiert (Supermarkt-Reihenfolge), aber ohne Überschriften
             <ul className="overflow-hidden rounded-3xl bg-surface">
-              {groups.flatMap((g) => g.items.map((i) => <Row key={i.id} item={i} icon={g.icon} />))}
+              {groups.flatMap((g) => g.items.map((i) => <Row key={i.id} item={i} icon={g.icon} tint={colors ? g.tint : undefined} />))}
             </ul>
           )}
 
@@ -200,7 +220,7 @@ export default function ShoppingList() {
               </h2>
               <ul className="overflow-hidden rounded-3xl bg-surface">
                 {g.items.map((i) => (
-                  <Row key={i.id} item={i} />
+                  <Row key={i.id} item={i} tint={colors ? g.tint : undefined} />
                 ))}
               </ul>
             </section>
@@ -239,6 +259,20 @@ export default function ShoppingList() {
               <span className="block text-xs font-normal text-muted">Ohne Überschriften, Kategorie als Icon</span>
             </span>
             <Switch on={compact} />
+          </button>
+          <button
+            type="button"
+            role="switch"
+            aria-checked={colors}
+            onClick={toggleColors}
+            className="flex w-full items-center gap-3 rounded-full px-4 py-3.5 text-left text-[15px] font-medium transition hover:bg-bg"
+          >
+            <Palette size={20} className="shrink-0 text-brand" />
+            <span className="flex-1">
+              Farbmodus
+              <span className="block text-xs font-normal text-muted">Produkte in Pastelltönen je Kategorie</span>
+            </span>
+            <Switch on={colors} />
           </button>
           <MenuItem
             icon={<BookmarkPlus size={20} />}
@@ -280,15 +314,15 @@ export default function ShoppingList() {
 }
 
 /** Eintrag der Liste; mit `icon` (kompakte Ansicht) steht die Kategorie als kleines Icon vor dem Namen. */
-function Row({ item, icon: Icon }: { item: ListItem; icon?: LucideIcon }) {
+function Row({ item, icon: Icon, tint }: { item: ListItem; icon?: LucideIcon; tint?: string }) {
   return (
-    <li className="group flex items-center gap-3 border-b border-line/70 pr-2 pl-4 last:border-0">
+    <li className={`group flex items-center gap-3 border-b pr-2 pl-4 last:border-0 ${tint ? `${tint} border-surface` : 'border-line/70'}`}>
       <button type="button" onClick={() => toggleItem(item)} className={`flex flex-1 items-center gap-3 py-2 text-left ${Icon ? 'min-h-12' : 'min-h-14'}`}>
         <CheckCircle checked={item.checked} />
         {Icon && <Icon size={16} className="shrink-0 text-brand" aria-hidden />}
         <span className={`flex-1 text-[15px] transition ${item.checked ? 'text-muted line-through' : 'font-medium'}`}>{item.name}</span>
         {item.quantity && (
-          <span className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${item.checked ? 'text-muted' : 'bg-bg text-ink/80'}`}>
+          <span className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${item.checked ? 'text-muted' : tint ? 'bg-surface/70 text-ink/80' : 'bg-bg text-ink/80'}`}>
             {item.quantity}
           </span>
         )}

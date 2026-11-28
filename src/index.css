@@ -21,6 +21,20 @@
   --color-brand-ink: #3f5e4b;
 
   --color-caramel: #c9a27e; /* dezente Markierungen */
+  /* Pastelltöne für den Farbmodus der Einkaufsliste – warm und gedämpft, Text bleibt `ink` */
+  --color-cat-obst: #e3ead6;
+  --color-cat-brot: #f1e3c9;
+  --color-cat-kuehl: #e0e8ec;
+  --color-cat-fleisch: #f2ddd6;
+  --color-cat-vorrat: #ebe2d1;
+  --color-cat-gewuerze: #e7e6cb;
+  --color-cat-tk: #dbe8e8;
+  --color-cat-getraenke: #e5e0ec;
+  --color-cat-snacks: #f4e0cd;
+  --color-cat-haushalt: #dceae2;
+  --color-cat-drogerie: #f0dee6;
+  --color-cat-sonstiges: #ece6dc;
+
   --color-flame: #d9773a; /* nur für die Serien-Flamme bei Habits */
   --color-flame-soft: #f2c77a; /* Kern der Flamme */
 

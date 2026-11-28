@@ -280,6 +280,28 @@ db.version(10).stores({
   settings: 'id',
 })
 
+/**
+ * „Haushalt & Drogerie“ wurde geteilt: bisher unter Haushalt einsortierte Drogerie-Produkte einmalig umsortieren.
+ * Läuft über normale Transaktionen (nicht im Dexie-Upgrade), damit der Sync die Änderung mitbekommt.
+ */
+export async function migrateDrogerie() {
+  const KEY = 'migr:drogerie'
+  try {
+    if (localStorage.getItem(KEY)) return
+  } catch {
+    return
+  }
+  const fix = { category: 'drogerie' as CategoryId }
+  const isDrog = (x: { name: string; category?: string }) => x.category === 'haushalt' && guessCategory(x.name) === 'drogerie'
+  await db.transaction('rw', db.listItems, db.products, async () => {
+    await db.listItems.filter(isDrog).modify(fix)
+    await db.products.filter(isDrog).modify(fix)
+  })
+  try {
+    localStorage.setItem(KEY, '1')
+  } catch {}
+}
+
 /** Weltweit eindeutige ID für Datensätze (crypto.randomUUID fehlt bei http im WLAN, getRandomValues nicht). */
 export function newId() {
   const b = crypto.getRandomValues(new Uint8Array(16))
