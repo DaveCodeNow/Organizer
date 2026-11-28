@@ -35,6 +35,12 @@
   --color-cat-drogerie: #f0dee6;
   --color-cat-sonstiges: #ece6dc;
 
+  /* Dringlichkeit der To-dos (Farbmodus): schmaler Streifen links, von warm (überfällig) nach kühl (nächste Woche) */
+  --color-urg-4: #b8735a; /* überfällig – Terrakotta */
+  --color-urg-3: #d49a6a; /* heute – Apricot */
+  --color-urg-2: #dcc08a; /* diese Woche – Honig */
+  --color-urg-1: #a9bba0; /* nächste Woche – blasses Salbei */
+
   --color-flame: #d9773a; /* nur für die Serien-Flamme bei Habits */
   --color-flame-soft: #f2c77a; /* Kern der Flamme */
 

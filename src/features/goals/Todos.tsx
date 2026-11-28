@@ -5,7 +5,7 @@ import { SymbolIcon } from '../../components/icons'
 import { db, type Level, type Repeat, type Todo, newId } from '../../lib/db'
 import { endOfWeek, formatDate, fromISO, relativeDate, startOfWeek, today } from '../../lib/dates'
 import { Button, CheckCircle, Chips, EmptyState, Field, SectionTitle, Sheet, inputClass } from '../../components/ui'
-import { GROUPS, GROUP_LABELS, HORIZONS, groupOf, horizonOf, type GroupId } from './horizons'
+import { GROUPS, GROUP_LABELS, HORIZONS, groupOf, horizonOf, urgencyOf, type GroupId } from './horizons'
 import { CategoryPicker, createCategory, extractHashtag, findCategory, useCategories } from './categories'
 import { LEVEL_POINTS, levelInfo, nextLevel, pointsLabel, usePointsSettings, weekStats } from './points'
 import { LevelDots, LevelPicker, ReviewCard, WeekProgress } from './PointsUI'
@@ -13,7 +13,7 @@ import { toast } from '../../components/Toast'
 import { REPEATS, isPlanned, repeatLabel, toggleTodo, visibleFrom } from './repeat'
 
 
-export function Todos({ onReport }: { onReport: (week: string) => void }) {
+export function Todos({ onReport, colors }: { onReport: (week: string) => void; colors?: boolean }) {
   const all = useLiveQuery(() => db.todos.toArray(), [])
   // Archivierte (erledigt und entfernt) bleiben nur für die Punkte-Rückblicke erhalten.
   const todos = useMemo(() => all?.filter((t) => !t.archived), [all])
@@ -70,7 +70,7 @@ export function Todos({ onReport }: { onReport: (week: string) => void }) {
               </SectionTitle>
               <ul className="overflow-hidden rounded-3xl bg-surface">
                 {g.items.map((t) => (
-                  <TodoRow key={t.id} todo={t} group={g.id} onEdit={() => setEditing(t)} />
+                  <TodoRow key={t.id} todo={t} group={g.id} colors={colors} onEdit={() => setEditing(t)} />
                 ))}
               </ul>
             </section>
@@ -134,7 +134,7 @@ export function Todos({ onReport }: { onReport: (week: string) => void }) {
   )
 }
 
-function TodoRow({ todo, group, planned, onEdit }: { todo: Todo; group?: GroupId; planned?: boolean; onEdit: () => void }) {
+function TodoRow({ todo, group, planned, colors, onEdit }: { todo: Todo; group?: GroupId; planned?: boolean; colors?: boolean; onEdit: () => void }) {
   const cats = useCategories()
   // Nur das Symbol der Kategorie, dezent vor dem Titel – keine Plakette.
   const catEmoji = findCategory(cats, todo.category)?.emoji
@@ -146,9 +146,12 @@ function TodoRow({ todo, group, planned, onEdit }: { todo: Todo; group?: GroupId
     ? `am ${formatDate(todo.due)}`
     : !todo.due || group === 'heute' || todo.done ? undefined : overdue ? `seit ${formatDate(todo.due)}` : `bis ${relativeDate(todo.due)}`
   const title = planned ? `Erscheint ab ${formatDate(visibleFrom(todo))}` : undefined
+  // Farbmodus: nur offene To-dos in den Gruppen bekommen einen Streifen (erledigte/geplante haben keine `group`)
+  const stripe = colors && !todo.done ? urgencyOf(group) : undefined
 
   return (
-    <li className="flex items-center border-b border-line/70 pr-4 last:border-0">
+    <li className="relative flex items-center border-b border-line/70 pr-4 last:border-0">
+      {stripe && <span aria-hidden className={`absolute inset-y-2.5 left-0 w-1 rounded-r-full ${stripe}`} />}
       <button
         type="button"
         aria-label={todo.done ? 'Als offen markieren' : 'Erledigt'}

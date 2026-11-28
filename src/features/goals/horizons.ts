@@ -47,3 +47,15 @@ export function groupOf(due: string | undefined): GroupId {
   if (due <= endOfYear()) return 'jahr'
   return 'später'
 }
+
+/**
+ * Farbmodus der To-do-Liste: Streifenfarbe nach Dringlichkeit, abgeleitet aus der Gruppe (also nur aus dem Fälligkeitsdatum).
+ * Ab „Diesen Monat“ bewusst ohne Farbe. Klassen ausgeschrieben lassen, damit Tailwind sie findet.
+ */
+const URGENCY: Partial<Record<GroupId, string>> = {
+  überfällig: 'bg-urg-4',
+  heute: 'bg-urg-3',
+  woche: 'bg-urg-2',
+  naechste: 'bg-urg-1',
+}
+export const urgencyOf = (group: GroupId | undefined) => (group ? URGENCY[group] : undefined)

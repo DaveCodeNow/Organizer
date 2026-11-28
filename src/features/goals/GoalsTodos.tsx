@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
-import { ChartNoAxesColumn, MoreHorizontal, Shapes, Sparkles, Target } from 'lucide-react'
+import { ChartNoAxesColumn, MoreHorizontal, Palette, Shapes, Sparkles, Target } from 'lucide-react'
 import { db } from '../../lib/db'
 import { startOfWeek, today } from '../../lib/dates'
 import { IconButton, MenuItem, PageHeader, Segmented, Sheet, Switch } from '../../components/ui'
@@ -44,6 +44,12 @@ export default function GoalsTodos() {
   const [managing, setManaging] = useState(false)
   const [menuOpen, setMenuOpen] = useState(false)
   const [report, setReport] = useState<string | null>(null)
+  // Farbmodus (Dringlichkeits-Streifen) – nur pro Gerät gemerkt
+  const [colors, setColors] = useState(() => read('todos:colors') === '1')
+  const toggleColors = () => {
+    setColors(!colors)
+    write('todos:colors', colors ? null : '1')
+  }
   const points = usePointsSettings()
   const cats = useCategoriesQuery()
 
@@ -79,7 +85,7 @@ export default function GoalsTodos() {
       <div className="space-y-3 px-5 pb-2">
         <Segmented value={view} options={VIEWS} onChange={changeView} />
       </div>
-      {view === 'todos' && <Todos onReport={setReport} />}
+      {view === 'todos' && <Todos onReport={setReport} colors={colors} />}
       {view === 'goals' && <Goals category={null} />}
       {view === 'habits' && <Habits category={null} />}
       {managing && <CategoryManager onClose={() => setManaging(false)} />}
@@ -87,6 +93,20 @@ export default function GoalsTodos() {
 
       <Sheet open={menuOpen} onClose={() => setMenuOpen(false)} title="Ziele & To-dos">
         <div className="space-y-1 pb-2">
+          <button
+            type="button"
+            role="switch"
+            aria-checked={colors}
+            onClick={toggleColors}
+            className="flex w-full items-center gap-3 rounded-full px-4 py-3.5 text-left text-[15px] font-medium transition hover:bg-bg"
+          >
+            <Palette size={20} className="shrink-0 text-brand" />
+            <span className="flex-1">
+              Farbmodus
+              <span className="block text-xs font-normal text-muted">To-dos mit Farbstreifen nach Dringlichkeit</span>
+            </span>
+            <Switch on={colors} />
+          </button>
           <button
             type="button"
             role="switch"
