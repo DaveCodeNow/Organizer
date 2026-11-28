@@ -5,7 +5,7 @@ import { SymbolIcon } from '../../components/icons'
 import { db, type Level, type Repeat, type Todo, newId } from '../../lib/db'
 import { endOfWeek, formatDate, fromISO, relativeDate, startOfWeek, today } from '../../lib/dates'
 import { Button, CheckCircle, Chips, EmptyState, Field, SectionTitle, Sheet, inputClass } from '../../components/ui'
-import { GROUPS, GROUP_LABELS, HORIZONS, groupOf, horizonOf, urgencyOf, type GroupId } from './horizons'
+import { GROUPS, GROUP_LABELS, HORIZONS, groupOf, horizonOf, isFixed, urgencyOf, type GroupId } from './horizons'
 import { CategoryPicker, createCategory, extractHashtag, findCategory, useCategories } from './categories'
 import { LEVEL_POINTS, levelInfo, nextLevel, pointsLabel, usePointsSettings, weekStats } from './points'
 import { LevelDots, LevelPicker, ReviewCard, WeekProgress } from './PointsUI'
@@ -144,7 +144,7 @@ function TodoRow({ todo, group, planned, colors, onEdit }: { todo: Todo; group?:
   // In der Gruppe „Heute“ ist das Datum überflüssig, sonst „bis Sonntag“ bzw. „seit 3. Nov.“
   const label = planned && todo.due
     ? `am ${formatDate(todo.due)}`
-    : !todo.due || group === 'heute' || todo.done ? undefined : overdue ? `seit ${formatDate(todo.due)}` : `bis ${relativeDate(todo.due)}`
+    : !todo.due || group === 'heute' || todo.done ? undefined : overdue ? `seit ${formatDate(todo.due)}` : isFixed(todo) ? relativeDate(todo.due) : `bis ${relativeDate(todo.due)}`
   const title = planned ? `Erscheint ab ${formatDate(visibleFrom(todo))}` : undefined
   // Farbmodus: Fläche hinter dem Abhak-Kreis (bis zwischen Kreis und Text) nach Dringlichkeit.
   // Nur offene To-dos in den Gruppen (erledigte/geplante haben keine `group`).
@@ -201,6 +201,8 @@ function TodoEditor({ todo, onClose }: { todo: Draft; onClose: () => void }) {
   const [category, setCategory] = useState(todo.category)
   const [level, setLevel] = useState<Level | undefined>(todo.level)
   const [repeat, setRepeat] = useState<Repeat | undefined>(todo.repeat)
+  // Fester Tag (Kalender) vs. Zeitraum: eigenes Datum und „Heute“ sind fest, die anderen Zeiträume nicht
+  const [fixed, setFixed] = useState(() => (todo.id ? isFixed(todo) : !!todo.fixed))
   const points = usePointsSettings().enabled
 
   // Wiederholung braucht einen Tag – ohne Datum wird heute vorgeschlagen.
@@ -222,7 +224,7 @@ function TodoEditor({ todo, onClose }: { todo: Draft; onClose: () => void }) {
     const rep = due ? repeat : undefined
     // Ankertag nur neu setzen, wenn sich das Datum geändert hat (sonst wird der 31. nach dem April zum 30.)
     const repeatDay = rep && due ? (due === todo.due && todo.repeatDay ? todo.repeatDay : fromISO(due).getDate()) : undefined
-    const data = { title: clean, due, category: cat, level: points ? level : todo.level, repeat: rep, repeatDay }
+    const data = { title: clean, due, fixed: due ? fixed : undefined, category: cat, level: points ? level : todo.level, repeat: rep, repeatDay }
     if (todo.id) await db.todos.update(todo.id, data)
     else await db.todos.add({ ...data, id: newId(), done: false, createdAt: Date.now() } as Todo)
     onClose()
@@ -242,9 +244,21 @@ function TodoEditor({ todo, onClose }: { todo: Draft; onClose: () => void }) {
 
         <div className="space-y-2">
           <span className="block text-sm font-semibold">Zeitraum</span>
-          <Chips value={horizonOf(due)} options={HORIZONS} onChange={(id) => changeDue(HORIZONS.find((h) => h.id === id)!.due())} />
-          <input type="date" aria-label="Eigenes Datum" value={due ?? ''} onChange={(e) => changeDue(e.target.value || undefined)} className={inputClass} />
-          <p className="text-xs text-muted">{due ? `Fällig: ${relativeDate(due)}` : 'Ohne Termin – oder eigenes Datum wählen'}</p>
+          <Chips
+            value={fixed && horizonOf(due) !== 'heute' ? undefined : horizonOf(due)}
+            options={HORIZONS}
+            onChange={(id) => {
+              changeDue(HORIZONS.find((h) => h.id === id)!.due())
+              setFixed(id === 'heute')
+            }}
+          />
+          <input type="date" aria-label="Eigenes Datum" value={due ?? ''} onChange={(e) => {
+              changeDue(e.target.value || undefined)
+              setFixed(!!e.target.value)
+            }}
+            className={inputClass}
+          />
+          <p className="text-xs text-muted">{due ? (fixed || repeat ? `Am ${relativeDate(due)} – steht im Kalender` : `Fällig bis ${relativeDate(due)}`) : 'Ohne Termin – oder eigenes Datum wählen'}</p>
         </div>
 
         <div className="space-y-2">

@@ -7,6 +7,7 @@ import { navigate } from '../../lib/nav'
 import { PageHeader } from '../../components/ui'
 import { CONTRACTS, INTERVALS, adoptRent, contractStatus, euro, perMonth, rentLine, tariffCheck, tariffLine } from './costs'
 import { CostEditor, toDraft } from './CostEditor'
+import { WeekCalendar } from './WeekCalendar'
 import { AccountButton } from '../account/AccountButton'
 import { usePointsSettings, weekStats } from '../goals/points'
 import { WeekProgress } from '../goals/PointsUI'
@@ -69,6 +70,8 @@ export default function Overview() {
           <Tile icon={Target} value={goals.length} label={goals.length ? `Ziele · ${goalProgress} %` : 'Ziele aktiv'} onClick={() => navigate('goals')} />
         </section>
         {weekPoints !== undefined && <WeekProgress points={weekPoints} goal={points.weeklyGoal} label="diese Woche" onClick={() => navigate('goals')} />}
+
+        <WeekCalendar onEditCost={(c) => edit(c.kind, c)} />
 
         {/* Fixkosten: eine Karte – oben die Summe, aufgeklappt die Verträge und weiteren Posten, aus denen sie sich ergibt */}
         <section className="overflow-hidden rounded-3xl bg-surface">

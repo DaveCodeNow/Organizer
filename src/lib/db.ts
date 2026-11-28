@@ -83,6 +83,8 @@ export interface Todo {
   title: string
   /** Fälligkeit YYYY-MM-DD; leer = ohne Termin */
   due?: string
+  /** Fester Tag (eigenes Datum oder „Heute“) statt Zeitraum-Ende – nur solche To-dos stehen im Kalender. Fehlt bei älteren, siehe `isFixed`. */
+  fixed?: boolean
   done: boolean
   doneAt?: number
   /** ID einer GoalCategory */

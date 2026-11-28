@@ -1,4 +1,5 @@
-import { addDays, endOfMonth, endOfWeek, endOfYear, today } from '../../lib/dates'
+import { addDays, endOfMonth, endOfWeek, endOfYear, fromISO, today } from '../../lib/dates'
+import type { Todo } from '../../lib/db'
 
 /** Sonntag der nächsten Woche */
 export const endOfNextWeek = () => addDays(endOfWeek(), 7)
@@ -59,3 +60,16 @@ const URGENCY: Partial<Record<GroupId, string>> = {
   naechste: 'bg-urg-1/45',
 }
 export const urgencyOf = (group: GroupId | undefined) => (group ? URGENCY[group] : undefined)
+
+/**
+ * Hat das To-do einen festen Tag (Kalender) oder nur ein Zeitraum-Ende? Wiederkehrende immer fest.
+ * Ältere To-dos ohne `fixed`: Zeiträume enden immer auf einem Sonntag oder Monatsletzten – alles andere war ein eigenes Datum.
+ */
+export function isFixed(t: Pick<Todo, 'due' | 'fixed' | 'repeat'>) {
+  if (!t.due) return false
+  if (t.repeat) return true
+  if (t.fixed !== undefined) return t.fixed
+  const d = fromISO(t.due)
+  const monthEnd = new Date(d.getFullYear(), d.getMonth() + 1, 0).getDate() === d.getDate()
+  return d.getDay() !== 0 && !monthEnd
+}
