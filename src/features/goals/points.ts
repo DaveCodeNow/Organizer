@@ -8,7 +8,7 @@ import { addDays, fromISO, startOfWeek, toISO } from '../../lib/dates'
  * ändert man die Werte hier, gelten sie rückwirkend auch für alle vergangenen Wochen.
  */
 
-export const LEVEL_POINTS: Record<Level, number> = { leicht: 1, mittel: 3, wichtig: 5 }
+export const LEVEL_POINTS: Record<Level, number> = { leicht: 1, mittel: 2, wichtig: 3 }
 
 export const LEVELS: ReadonlyArray<{ id: Level; label: string; dots: number }> = [
   { id: 'leicht', label: 'Leicht', dots: 1 },

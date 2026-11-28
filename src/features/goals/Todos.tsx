@@ -1,13 +1,13 @@
-import { useMemo, useState, type FormEvent } from 'react'
+import { Fragment, useMemo, useState, type FormEvent, type ReactNode } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { ChevronDown, Plus, CircleCheck, Repeat as RepeatIcon, RotateCcw } from 'lucide-react'
 import { SymbolIcon } from '../../components/icons'
 import { db, type Level, type Repeat, type Todo, newId } from '../../lib/db'
-import { formatDate, fromISO, relativeDate, startOfWeek, today } from '../../lib/dates'
+import { formatDate, fromISO, relativeDate, startOfWeek, toISO, today } from '../../lib/dates'
 import { Button, CheckCircle, Chips, EmptyState, Field, SectionTitle, Sheet, inputClass } from '../../components/ui'
 import { GROUPS, GROUP_LABELS, HORIZONS, byTime, dayLabel, groupOf, horizonOf, isFixed, isNow, timeLabel, type GroupId } from './horizons'
 import { CategoryPicker, categoryTints, createCategory, extractHashtag, findCategory, useCategories, type CategoryInfo } from './categories'
-import { LEVEL_POINTS, levelInfo, nextLevel, pointsLabel, usePointsSettings, weekStats } from './points'
+import { LEVEL_POINTS, levelInfo, nextLevel, pointsLabel, pointsOf, usePointsSettings, weekStats } from './points'
 import { LevelDots, LevelPicker, ReviewCard, WeekProgress } from './PointsUI'
 import { toast } from '../../components/Toast'
 import { REPEATS, isPlanned, repeatLabel, toggleTodo, visibleFrom } from './repeat'
@@ -34,6 +34,28 @@ export function Todos({ onReport, colors }: { onReport: (week: string) => void; 
     return { groups, done, planned }
   }, [todos])
 
+  // Punkte für heute: schon heute erledigte (auch archivierte) + noch offene in „Heute“ (Überfällige zählen erst, wenn sie auf heute gesetzt werden).
+  const todayPoints = useMemo(() => {
+    if (!points.enabled || !all) return undefined
+    const t = today()
+    const earned = all.filter((x) => x.done && x.doneAt && toISO(new Date(x.doneAt)) === t).reduce((sum, x) => sum + pointsOf(x), 0)
+    const open = groups.find((g) => g.id === 'heute')?.items.reduce((sum, x) => sum + pointsOf(x), 0) ?? 0
+    return { earned, open }
+  }, [points.enabled, all, groups])
+  // Alles für heute abgehakt (und dabei Punkte gesammelt) → kleiner Text statt der Gruppe „Heute“
+  const allDoneToday = !!todayPoints && todayPoints.earned > 0 && !groups.some((g) => g.id === 'heute')
+  const allDoneText = todayPoints && (
+    <>
+      Du hast heute <span className="font-semibold text-ink">{pointsLabel(todayPoints.earned)}</span> gesammelt.
+    </>
+  )
+
+  /** Überfällige auf heute setzen (fester Tag) – dann zählen sie auch wieder bei den Tagespunkten. */
+  const moveToToday = async (items: Todo[]) => {
+    await db.todos.bulkUpdate(items.map((t) => ({ key: t.id, changes: { due: today(), fixed: true } })))
+    toast(items.length === 1 ? 'Auf heute verschoben' : `${items.length} To-dos auf heute verschoben`)
+  }
+
   if (!todos) return null
 
   return (
@@ -58,35 +80,61 @@ export function Todos({ onReport, colors }: { onReport: (week: string) => void; 
           {groups.length === 0 && (
             <div className="rounded-3xl bg-brand-soft px-5 py-6 text-center">
               <CircleCheck size={28} strokeWidth={1.75} className="mx-auto text-brand" />
-              <p className="mt-2 font-serif text-xl font-[600] text-ink">Alles erledigt</p>
+              <p className="mt-2 font-serif text-xl font-[600] text-ink">Alles geschafft!</p>
+              {allDoneToday && <p className="mt-1 text-sm text-ink">{allDoneText}</p>}
             </div>
           )}
 
+          {/* Steht an der Stelle von „Heute“: nach den Überfälligen, vor den späteren Gruppen */}
+          {groups.length > 0 && allDoneToday && !groups.some((g) => g.id === 'überfällig') && <AllDoneLine>{allDoneText}</AllDoneLine>}
+
           {groups.map((g) => (
-            <section key={g.id}>
-              <SectionTitle>
-                <span className={g.id === 'überfällig' ? 'text-warn' : ''}>{GROUP_LABELS[g.id]}</span>
-                <span className="font-normal">· {g.items.length}</span>
-              </SectionTitle>
-              <ul className="overflow-hidden rounded-3xl bg-surface">
-                {byCategory(g.items, cats).map((b, _, blocks) => {
-                  // Farbmodus: nur die Kategorie-Zwischenzeile bekommt einen Pastellton, die To-dos bleiben farblos
-                  const tint = colors && b.cat ? categoryTints(blocks.flatMap((x) => (x.cat ? [x.cat.id] : [])), cats).get(b.cat.id) : undefined
-                  return [
-                    b.cat && (
-                      <li
-                        key={`cat-${b.cat.id}`}
-                        className={`flex items-center gap-1.5 px-4 text-xs font-semibold ${tint ? `${tint} py-2 text-ink` : 'pt-3 pb-1 text-muted'}`}
-                      >
-                        <SymbolIcon value={b.cat.emoji} size={14} className="shrink-0 text-brand" />
-                        <span className="truncate">{b.cat.name}</span>
-                      </li>
-                    ),
-                    ...b.items.map((t) => <TodoRow key={t.id} todo={t} group={g.id} hideCategory onEdit={() => setEditing(t)} />),
-                  ]
-                })}
-              </ul>
-            </section>
+            <Fragment key={g.id}>
+              <section>
+                <SectionTitle
+                  action={
+                    g.id === 'überfällig' ? (
+                      <button type="button" onClick={() => moveToToday(g.items)} className="flex h-10 items-center px-1 text-sm font-semibold text-brand">
+                        {g.items.length === 1 ? 'Auf heute' : 'Alle auf heute'}
+                      </button>
+                    ) : (
+                      // Dezent: nur eine kleine Textzeile rechts neben „Heute“
+                      g.id === 'heute' &&
+                      todayPoints &&
+                      todayPoints.earned + todayPoints.open > 0 && (
+                        <span className="text-xs text-muted">
+                          {todayPoints.earned
+                            ? `${todayPoints.earned} von ${pointsLabel(todayPoints.earned + todayPoints.open)}`
+                            : `${pointsLabel(todayPoints.open)} möglich`}
+                        </span>
+                      )
+                    )
+                  }
+                >
+                  <span className={g.id === 'überfällig' ? 'text-warn' : ''}>{GROUP_LABELS[g.id]}</span>
+                  <span className="font-normal">· {g.items.length}</span>
+                </SectionTitle>
+                <ul className="overflow-hidden rounded-3xl bg-surface">
+                  {byCategory(g.items, cats).map((b, _, blocks) => {
+                    // Farbmodus: nur die Kategorie-Zwischenzeile bekommt einen Pastellton, die To-dos bleiben farblos
+                    const tint = colors && b.cat ? categoryTints(blocks.flatMap((x) => (x.cat ? [x.cat.id] : [])), cats).get(b.cat.id) : undefined
+                    return [
+                      b.cat && (
+                        <li
+                          key={`cat-${b.cat.id}`}
+                          className={`flex items-center gap-1.5 px-4 text-xs font-semibold ${tint ? `${tint} py-2 text-ink` : 'pt-3 pb-1 text-muted'}`}
+                        >
+                          <SymbolIcon value={b.cat.emoji} size={14} className="shrink-0 text-brand" />
+                          <span className="truncate">{b.cat.name}</span>
+                        </li>
+                      ),
+                      ...b.items.map((t) => <TodoRow key={t.id} todo={t} group={g.id} hideCategory onEdit={() => setEditing(t)} />),
+                    ]
+                  })}
+                </ul>
+              </section>
+              {g.id === 'überfällig' && allDoneToday && <AllDoneLine>{allDoneText}</AllDoneLine>}
+            </Fragment>
           ))}
 
           {planned.length > 0 && (
@@ -220,6 +268,18 @@ function TodoRow({
         </button>
       )}
     </li>
+  )
+}
+
+/** Kleiner Abschluss-Text, wenn alle To-dos für heute abgehakt sind */
+function AllDoneLine({ children }: { children: ReactNode }) {
+  return (
+    <p className="flex items-center gap-2 px-1 text-sm text-muted">
+      <CircleCheck size={16} className="shrink-0 text-brand" />
+      <span>
+        <span className="font-semibold text-ink">Alles geschafft!</span> {children}
+      </span>
+    </p>
   )
 }
 
