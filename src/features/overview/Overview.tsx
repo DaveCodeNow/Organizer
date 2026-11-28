@@ -1,10 +1,10 @@
 import { useEffect, useState, type ReactNode } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
-import { AlertCircle, ChevronDown, ChevronRight, CircleCheck, FileText, Plus, ShoppingBasket, Target, type LucideIcon } from 'lucide-react'
+import { AlertCircle, ChevronDown, ChevronRight, CircleCheck, Plus, ShoppingBasket, Target, type LucideIcon } from 'lucide-react'
 import { db, type CostKind, type FixedCost } from '../../lib/db'
 import { startOfWeek, today } from '../../lib/dates'
 import { navigate } from '../../lib/nav'
-import { PageHeader, SectionTitle } from '../../components/ui'
+import { PageHeader } from '../../components/ui'
 import { CONTRACTS, INTERVALS, adoptRent, contractStatus, euro, perMonth, rentLine, tariffCheck, tariffLine } from './costs'
 import { CostEditor, toDraft } from './CostEditor'
 import { AccountButton } from '../account/AccountButton'
@@ -18,11 +18,11 @@ export default function Overview() {
   const todos = useLiveQuery(() => db.todos.filter((t) => !t.done).toArray(), [])
   const goals = useLiveQuery(() => db.goals.filter((g) => !g.done).toArray(), [])
   const [editing, setEditing] = useState<ReturnType<typeof toDraft> | null>(null)
-  // Verträge sind standardmäßig eingeklappt; der Zustand wird pro Gerät gemerkt.
-  const [contractsOpen, setContractsOpen] = useState(() => readFlag(CONTRACTS_KEY))
-  const toggleContracts = () => {
-    setContractsOpen(!contractsOpen)
-    writeFlag(CONTRACTS_KEY, !contractsOpen)
+  // Fixkosten-Karte (Verträge + weitere Posten) ist standardmäßig eingeklappt; der Zustand wird pro Gerät gemerkt.
+  const [costsOpen, setCostsOpen] = useState(() => readFlag(COSTS_KEY))
+  const toggleCosts = () => {
+    setCostsOpen(!costsOpen)
+    writeFlag(COSTS_KEY, !costsOpen)
   }
   const points = usePointsSettings()
   const weekPoints = useLiveQuery(
@@ -39,8 +39,9 @@ export default function Overview() {
 
   const edit = (kind: CostKind, c?: FixedCost) => setEditing(toDraft(kind, c))
   const total = costs.reduce((sum, c) => sum + perMonth(c), 0)
-  const contracts = costs.filter((c) => c.kind !== 'sonstig')
-  const contractsTotal = contracts.reduce((sum, c) => sum + perMonth(c), 0)
+  // Verträge in fester Reihenfolge (Miete, Strom, Gas, Internet); fehlende als kleine „+“-Knöpfe
+  const contracts = CONTRACTS.flatMap((k) => costs.filter((c) => c.kind === k.id).map((c) => ({ k, c })))
+  const missing = CONTRACTS.filter((k) => !costs.some((c) => c.kind === k.id))
   const others = costs.filter((c) => c.kind === 'sonstig').sort((a, b) => perMonth(b) - perMonth(a))
   const alerts = costs.flatMap((c) => {
     const s = contractStatus(c)
@@ -69,18 +70,104 @@ export default function Overview() {
         </section>
         {weekPoints !== undefined && <WeekProgress points={weekPoints} goal={points.weeklyGoal} label="diese Woche" onClick={() => navigate('goals')} />}
 
-        {/* Fixkosten gesamt – bewusst zurückhaltend */}
-        <section className="flex items-end justify-between gap-3 rounded-3xl bg-surface px-5 py-4">
-          <div className="min-w-0">
-            <p className="text-sm text-muted">Fixkosten pro Monat</p>
-            <p className="mt-0.5 font-serif text-[26px] leading-[1.1]">{euro(total)}</p>
-          </div>
-          <p className="shrink-0 pb-0.5 text-right text-xs text-muted">
-            {costs.length === 0 ? 'Noch keine Posten' : <>{costs.length} Posten<br />{euro(total * 12)} im Jahr</>}
-          </p>
+        {/* Fixkosten: eine Karte – oben die Summe, aufgeklappt die Verträge und weiteren Posten, aus denen sie sich ergibt */}
+        <section className="overflow-hidden rounded-3xl bg-surface">
+          <button
+            type="button"
+            onClick={toggleCosts}
+            aria-expanded={costsOpen}
+            className="flex w-full items-end justify-between gap-3 px-5 py-4 text-left"
+          >
+            <span className="min-w-0">
+              <span className="block text-sm text-muted">Fixkosten pro Monat</span>
+              <span className="mt-0.5 block font-serif text-[26px] leading-[1.1]">{euro(total)}</span>
+            </span>
+            <span className="flex shrink-0 items-center gap-2 pb-0.5">
+              <span className="text-right text-xs text-muted">
+                {costs.length === 0 ? 'Noch keine Posten' : <>{costs.length} Posten<br />{euro(total * 12)} im Jahr</>}
+              </span>
+              <ChevronDown size={20} className={`text-muted transition-transform ${costsOpen ? 'rotate-180' : ''}`} />
+            </span>
+          </button>
+
+          {costsOpen && (
+            <div className="border-t border-line/70 pb-2">
+              <SubTitle>Verträge</SubTitle>
+              <ul>
+                {contracts.map(({ k, c }) => {
+                  const lines = [tariffLine(c) && { text: tariffLine(c)!, tone: 'muted' as const }, tariffCheck(c), contractStatus(c)].filter((x) => !!x)
+                  return (
+                    <Row key={c.id} onClick={() => edit(k.id, c)}>
+                      <span className="grid size-10 shrink-0 place-items-center self-start rounded-full bg-sand text-brand">
+                        <k.icon size={19} />
+                      </span>
+                      <span className="min-w-0 flex-1">
+                        <span className="block font-medium">{c.name}</span>
+                        <span className="block truncate text-xs text-muted">
+                          {c.kind === 'miete' ? rentLine(c) || c.provider || 'Vermieter nicht angegeben' : c.provider || 'Anbieter nicht angegeben'}
+                        </span>
+                        {lines.map((l) => (
+                          <span key={l.text} className={`block text-xs ${l.tone === 'warn' ? 'font-medium text-warn' : 'text-muted'}`}>
+                            {l.text}
+                          </span>
+                        ))}
+                      </span>
+                      <Amount cost={c} />
+                    </Row>
+                  )
+                })}
+              </ul>
+              {missing.length > 0 && (
+                <div className="flex flex-wrap gap-2 px-4 pt-1 pb-2">
+                  {missing.map((k) => (
+                    <button
+                      key={k.id}
+                      type="button"
+                      onClick={() => edit(k.id)}
+                      className="flex h-10 items-center gap-1.5 rounded-full border border-dashed border-line px-3.5 text-sm text-muted"
+                    >
+                      <Plus size={15} /> {k.title}
+                    </button>
+                  ))}
+                </div>
+              )}
+
+              <SubTitle
+                action={
+                  <button type="button" onClick={() => edit('sonstig')} className="flex h-10 items-center gap-1 px-1 text-sm font-semibold text-brand">
+                    <Plus size={16} /> Hinzufügen
+                  </button>
+                }
+              >
+                Weitere Fixkosten
+              </SubTitle>
+              {others.length === 0 ? (
+                <p className="px-5 pb-2 text-sm text-muted">Versicherungen, Handy, Abos, Streaming … – hier eintragen, was jeden Monat (oder jedes Jahr) fällig ist.</p>
+              ) : (
+                <ul>
+                  {others.map((c) => {
+                    const status = contractStatus(c)
+                    return (
+                      <Row key={c.id} onClick={() => edit('sonstig', c)}>
+                        <span className="min-w-0 flex-1">
+                          <span className="block truncate font-medium">{c.name}</span>
+                          {(c.provider || status) && (
+                            <span className={`block truncate text-xs ${status?.tone === 'warn' ? 'text-warn' : 'text-muted'}`}>
+                              {[c.provider, status?.text].filter(Boolean).join(' · ')}
+                            </span>
+                          )}
+                        </span>
+                        <Amount cost={c} />
+                      </Row>
+                    )
+                  })}
+                </ul>
+              )}
+            </div>
+          )}
         </section>
 
-        {/* Hinweise */}
+        {/* Hinweise (Kündigungsfristen) – bleiben auch bei eingeklappter Karte sichtbar */}
         {alerts.length > 0 && (
           <section className="space-y-2">
             {alerts.map(({ cost, text }) => (
@@ -100,110 +187,6 @@ export default function Overview() {
           </section>
         )}
 
-        {/* Verträge */}
-        <section>
-          <button
-            type="button"
-            onClick={toggleContracts}
-            aria-expanded={contractsOpen}
-            className="flex min-h-14 w-full items-center gap-3 rounded-3xl bg-surface px-4 py-3 text-left transition active:scale-[.99]"
-          >
-            <span className="grid size-10 shrink-0 place-items-center rounded-full bg-sand text-brand">
-              <FileText size={19} />
-            </span>
-            <span className="min-w-0 flex-1">
-              <span className="block font-semibold">Verträge</span>
-              <span className="block truncate text-sm text-muted">
-                {contracts.length === 0 ? 'Miete, Strom, Gas, Internet hinterlegen' : `${contracts.length} hinterlegt · ${euro(contractsTotal)} pro Monat`}
-              </span>
-            </span>
-            <ChevronDown size={20} className={`shrink-0 text-muted transition-transform ${contractsOpen ? 'rotate-180' : ''}`} />
-          </button>
-          {contractsOpen && (
-            <div className="mt-3 space-y-3">
-              {CONTRACTS.map((k) => {
-                const c = costs.find((x) => x.kind === k.id)
-                if (!c) {
-                  return (
-                    <button
-                      key={k.id}
-                      type="button"
-                      onClick={() => edit(k.id)}
-                      className="flex w-full items-center gap-3 rounded-3xl border border-dashed border-line p-4 text-left text-muted transition active:scale-[.99]"
-                    >
-                      <span className="grid size-11 place-items-center rounded-full bg-surface text-brand">
-                        <k.icon size={20} />
-                      </span>
-                      <span className="flex-1 font-medium">{k.title} hinterlegen</span>
-                      <Plus size={20} />
-                    </button>
-                  )
-                }
-                const lines = [
-                  tariffLine(c) && { text: tariffLine(c)!, tone: 'muted' as const },
-                  tariffCheck(c),
-                  contractStatus(c),
-                ].filter((x) => !!x)
-                return (
-                  <CostCard key={k.id} icon={k.icon} cost={c} onClick={() => edit(k.id, c)}>
-                    {lines.length > 0 && (
-                      <div className="mt-3 space-y-1 border-t border-line/70 pt-3">
-                        {lines.map((l) => (
-                          <p key={l.text} className={`text-sm ${l.tone === 'warn' ? 'font-medium text-warn' : 'text-muted'}`}>
-                            {l.text}
-                          </p>
-                        ))}
-                      </div>
-                    )}
-                  </CostCard>
-                )
-              })}
-            </div>
-          )}
-        </section>
-
-        {/* Weitere Fixkosten */}
-        <section>
-          <SectionTitle
-            action={
-              <button type="button" onClick={() => edit('sonstig')} className="flex h-10 items-center gap-1 px-1 text-sm font-semibold text-brand">
-                <Plus size={16} /> Hinzufügen
-              </button>
-            }
-          >
-            Weitere Fixkosten
-          </SectionTitle>
-          {others.length === 0 ? (
-            <button
-              type="button"
-              onClick={() => edit('sonstig')}
-              className="w-full rounded-3xl border border-dashed border-line px-5 py-6 text-center text-sm text-muted"
-            >
-              Versicherungen, Handy, Abos, Streaming … – hier eintragen, was jeden Monat (oder jedes Jahr) fällig ist.
-            </button>
-          ) : (
-            <ul className="overflow-hidden rounded-3xl bg-surface">
-              {others.map((c) => {
-                const status = contractStatus(c)
-                return (
-                  <li key={c.id} className="border-b border-line/70 last:border-0">
-                    <button type="button" onClick={() => edit('sonstig', c)} className="flex min-h-14 w-full items-center gap-3 px-4 py-3 text-left">
-                      <span className="min-w-0 flex-1">
-                        <span className="block truncate font-medium">{c.name}</span>
-                        {(c.provider || status) && (
-                          <span className={`block truncate text-xs ${status?.tone === 'warn' ? 'text-warn' : 'text-muted'}`}>
-                            {[c.provider, status?.text].filter(Boolean).join(' · ')}
-                          </span>
-                        )}
-                      </span>
-                      <Amount cost={c} />
-                    </button>
-                  </li>
-                )
-              })}
-            </ul>
-          )}
-        </section>
       </div>
 
       {editing && <CostEditor draft={editing} onClose={() => setEditing(null)} />}
@@ -211,7 +194,8 @@ export default function Overview() {
   )
 }
 
-const CONTRACTS_KEY = 'overview:contractsOpen'
+// Alter Schlüssel der früheren Verträge-Karte, damit der gemerkte Zustand erhalten bleibt
+const COSTS_KEY = 'overview:contractsOpen'
 function readFlag(key: string) {
   try {
     return localStorage.getItem(key) === '1'
@@ -245,23 +229,23 @@ function Tile({ icon: Icon, value, label, warn, onClick }: { icon: LucideIcon; v
   )
 }
 
-function CostCard({ icon: Icon, cost, onClick, children }: { icon: LucideIcon; cost: FixedCost; onClick: () => void; children?: ReactNode }) {
+/** Zwischenüberschrift innerhalb der Fixkosten-Karte */
+function SubTitle({ children, action }: { children: ReactNode; action?: ReactNode }) {
   return (
-    <button type="button" onClick={onClick} className="block w-full rounded-3xl bg-surface p-4 text-left transition active:scale-[.99]">
-      <div className="flex items-center gap-3">
-        <span className="grid size-11 shrink-0 place-items-center rounded-full bg-sand text-brand">
-          <Icon size={20} />
-        </span>
-        <span className="min-w-0 flex-1">
-          <span className="block font-semibold">{cost.name}</span>
-          <span className="block truncate text-sm text-muted">
-            {cost.kind === 'miete' ? rentLine(cost) || cost.provider || 'Vermieter nicht angegeben' : cost.provider || 'Anbieter nicht angegeben'}
-          </span>
-        </span>
-        <Amount cost={cost} />
-      </div>
-      {children}
-    </button>
+    <div className="flex min-h-10 items-center justify-between gap-3 px-5 pt-3">
+      <h3 className="text-sm font-semibold text-muted">{children}</h3>
+      {action}
+    </div>
+  )
+}
+
+function Row({ onClick, children }: { onClick: () => void; children: ReactNode }) {
+  return (
+    <li className="border-b border-line/70 last:border-0">
+      <button type="button" onClick={onClick} className="flex min-h-14 w-full items-center gap-3 px-4 py-3 text-left transition hover:bg-bg">
+        {children}
+      </button>
+    </li>
   )
 }
 
