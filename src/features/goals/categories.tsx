@@ -63,6 +63,50 @@ export function useCategoriesQuery() {
   )
 }
 
+/**
+ * Farbmodus der To-dos: Pastellton je Kategorie (Tokens `cat-*` aus index.css, mit der Einkaufsliste geteilt).
+ * Reihenfolge so gewählt, dass benachbarte Töne sich deutlich unterscheiden. Klassen ausgeschrieben lassen (Tailwind).
+ */
+export const CATEGORY_TINTS = [
+  'bg-cat-obst',
+  'bg-cat-kuehl',
+  'bg-cat-fleisch',
+  'bg-cat-gewuerze',
+  'bg-cat-getraenke',
+  'bg-cat-snacks',
+  'bg-cat-tk',
+  'bg-cat-drogerie',
+  'bg-cat-brot',
+  'bg-cat-haushalt',
+] as const
+
+/**
+ * Farben für die Kategorien einer Gruppe (z. B. „Heute“). Jede Kategorie hat eine feste Wunschfarbe nach
+ * Anlage-Reihenfolge (neue Kategorien verschieben die anderen nicht). Kollidieren zwei in derselben Gruppe,
+ * bekommt die spätere die nächste freie Farbe – so tragen nie zwei Kategorien einer Gruppe dieselbe Farbe.
+ */
+export function categoryTints(ids: string[], cats: CategoryInfo[]) {
+  const order = [...cats].sort((a, b) => a.createdAt - b.createdAt).map((c) => c.id)
+  const n = CATEGORY_TINTS.length
+  const wish = (id: string) => Math.max(0, order.indexOf(id)) % n
+  const out = new Map<string, string>()
+  const used = new Set<number>()
+  for (const id of ids) {
+    if (!used.has(wish(id))) {
+      used.add(wish(id))
+      out.set(id, CATEGORY_TINTS[wish(id)])
+    }
+  }
+  for (const id of ids) {
+    if (out.has(id)) continue
+    let i = wish(id)
+    for (let k = 0; k < n && used.has(i); k++) i = (i + 1) % n
+    used.add(i)
+    out.set(id, CATEGORY_TINTS[i])
+  }
+  return out
+}
+
 /** Der Tab „Ziele & To-dos“ lädt die Kategorien einmal und reicht sie hierüber an alle Bausteine weiter. */
 export const CategoriesContext = createContext<CategoryInfo[]>([])
 export const useCategories = () => useContext(CategoriesContext)

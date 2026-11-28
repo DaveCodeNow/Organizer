@@ -44,7 +44,7 @@ export default function GoalsTodos() {
   const [managing, setManaging] = useState(false)
   const [menuOpen, setMenuOpen] = useState(false)
   const [report, setReport] = useState<string | null>(null)
-  // Farbmodus (Dringlichkeits-Streifen) – nur pro Gerät gemerkt
+  // Farbmodus (Kategorien farbig hinterlegt) – nur pro Gerät gemerkt
   const [colors, setColors] = useState(() => read('todos:colors') === '1')
   const toggleColors = () => {
     setColors(!colors)
@@ -103,7 +103,7 @@ export default function GoalsTodos() {
             <Palette size={20} className="shrink-0 text-brand" />
             <span className="flex-1">
               Farbmodus
-              <span className="block text-xs font-normal text-muted">To-dos mit Farbstreifen nach Dringlichkeit</span>
+              <span className="block text-xs font-normal text-muted">Kategorien in Pastelltönen hinterlegt</span>
             </span>
             <Switch on={colors} />
           </button>

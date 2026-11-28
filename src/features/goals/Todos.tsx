@@ -5,8 +5,8 @@ import { SymbolIcon } from '../../components/icons'
 import { db, type Level, type Repeat, type Todo, newId } from '../../lib/db'
 import { formatDate, fromISO, relativeDate, startOfWeek, today } from '../../lib/dates'
 import { Button, CheckCircle, Chips, EmptyState, Field, SectionTitle, Sheet, inputClass } from '../../components/ui'
-import { GROUPS, GROUP_LABELS, HORIZONS, byTime, groupOf, horizonOf, isFixed, isNow, timeLabel, urgencyOf, type GroupId } from './horizons'
-import { CategoryPicker, createCategory, extractHashtag, findCategory, useCategories, type CategoryInfo } from './categories'
+import { GROUPS, GROUP_LABELS, HORIZONS, byTime, dayLabel, groupOf, horizonOf, isFixed, isNow, timeLabel, type GroupId } from './horizons'
+import { CategoryPicker, categoryTints, createCategory, extractHashtag, findCategory, useCategories, type CategoryInfo } from './categories'
 import { LEVEL_POINTS, levelInfo, nextLevel, pointsLabel, usePointsSettings, weekStats } from './points'
 import { LevelDots, LevelPicker, ReviewCard, WeekProgress } from './PointsUI'
 import { toast } from '../../components/Toast'
@@ -69,15 +69,22 @@ export function Todos({ onReport, colors }: { onReport: (week: string) => void; 
                 <span className="font-normal">· {g.items.length}</span>
               </SectionTitle>
               <ul className="overflow-hidden rounded-3xl bg-surface">
-                {byCategory(g.items, cats).map((b) => [
-                  b.cat && (
-                    <li key={`cat-${b.cat.id}`} className="flex items-center gap-1.5 px-4 pt-3 pb-1 text-xs font-semibold text-muted">
-                      <SymbolIcon value={b.cat.emoji} size={14} className="shrink-0 text-brand" />
-                      <span className="truncate">{b.cat.name}</span>
-                    </li>
-                  ),
-                  ...b.items.map((t) => <TodoRow key={t.id} todo={t} group={g.id} colors={colors} hideCategory onEdit={() => setEditing(t)} />),
-                ])}
+                {byCategory(g.items, cats).map((b, _, blocks) => {
+                  // Farbmodus: nur die Kategorie-Zwischenzeile bekommt einen Pastellton, die To-dos bleiben farblos
+                  const tint = colors && b.cat ? categoryTints(blocks.flatMap((x) => (x.cat ? [x.cat.id] : [])), cats).get(b.cat.id) : undefined
+                  return [
+                    b.cat && (
+                      <li
+                        key={`cat-${b.cat.id}`}
+                        className={`flex items-center gap-1.5 px-4 text-xs font-semibold ${tint ? `${tint} py-2 text-ink` : 'pt-3 pb-1 text-muted'}`}
+                      >
+                        <SymbolIcon value={b.cat.emoji} size={14} className="shrink-0 text-brand" />
+                        <span className="truncate">{b.cat.name}</span>
+                      </li>
+                    ),
+                    ...b.items.map((t) => <TodoRow key={t.id} todo={t} group={g.id} hideCategory onEdit={() => setEditing(t)} />),
+                  ]
+                })}
               </ul>
             </section>
           ))}
@@ -144,14 +151,12 @@ function TodoRow({
   todo,
   group,
   planned,
-  colors,
   hideCategory,
   onEdit,
 }: {
   todo: Todo
   group?: GroupId
   planned?: boolean
-  colors?: boolean
   /** In den Zeitgruppen steht die Kategorie einmal als Zwischenüberschrift, nicht an jedem To-do */
   hideCategory?: boolean
   onEdit: () => void
@@ -173,18 +178,14 @@ function TodoRow({
         : group === 'heute'
           ? time
           : isFixed(todo)
-            ? [relativeDate(todo.due), time].filter(Boolean).join(' · ')
+            ? [dayLabel(todo.due), time].filter(Boolean).join(' · ')
             : `bis ${relativeDate(todo.due)}`
   // Läuft das Zeitfenster gerade, wird die Uhrzeit dezent hervorgehoben
   const now = group === 'heute' && !todo.done && isNow(todo)
   const title = planned ? `Erscheint ab ${formatDate(visibleFrom(todo))}` : undefined
-  // Farbmodus: Fläche hinter dem Abhak-Kreis (bis zwischen Kreis und Text) nach Dringlichkeit.
-  // Nur offene To-dos in den Gruppen (erledigte/geplante haben keine `group`).
-  const stripe = colors && !todo.done ? urgencyOf(group) : undefined
 
   return (
-    <li className="relative flex items-center border-b border-line/70 pr-4 last:border-0">
-      {stripe && <span aria-hidden className={`absolute inset-y-0 left-0 w-12 ${stripe}`} />}
+    <li className="flex items-center border-b border-line/70 pr-4 last:border-0">
       <button
         type="button"
         aria-label={todo.done ? 'Als offen markieren' : 'Erledigt'}
@@ -192,12 +193,9 @@ function TodoRow({
           toggleTodo(todo)
           if (points && level && !todo.done) toast(`+ ${pointsLabel(LEVEL_POINTS[level])}`)
         }}
-        className="relative grid min-h-14 w-14 shrink-0 place-items-center"
+        className="grid min-h-14 w-14 shrink-0 place-items-center"
       >
-        {/* Auf der Farbfläche bekommt der Kreis eine helle Füllung, sonst verschwindet der Karamell-Rand */}
-        <span className={`rounded-full ${stripe ? 'bg-surface' : ''}`}>
-          <CheckCircle checked={todo.done} />
-        </span>
+        <CheckCircle checked={todo.done} />
       </button>
       <button type="button" onClick={onEdit} className="flex min-h-14 min-w-0 flex-1 items-center gap-3 py-2 text-left">
         <span className={`min-w-0 flex-1 text-[15px] ${todo.done ? 'text-muted line-through' : 'font-medium'}`}>
@@ -302,13 +300,19 @@ function TodoEditor({ todo, onClose }: { todo: Draft; onClose: () => void }) {
               setFixed(id === 'heute')
             }}
           />
-          <input type="date" aria-label="Eigenes Datum" value={due ?? ''} onChange={(e) => {
+          <input
+            type="date"
+            aria-label="Eigenes Datum"
+            value={due ?? ''}
+            // Wer das Datumsfeld benutzt, meint einen konkreten Tag – auch wenn das Datum gleich bleibt (dann gibt es kein onChange)
+            onFocus={() => due && setFixed(true)}
+            onChange={(e) => {
               changeDue(e.target.value || undefined)
               setFixed(!!e.target.value)
             }}
             className={inputClass}
           />
-          <p className="text-xs text-muted">{due ? (fixed || repeat ? `${/^(Heute|Morgen|Gestern)$/.test(relativeDate(due)) ? relativeDate(due) : `Am ${relativeDate(due)}`} – steht im Kalender` : `Fällig bis ${relativeDate(due)}`) : 'Ohne Termin – oder eigenes Datum wählen'}</p>
+          <p className="text-xs text-muted">{due ? (fixed || repeat ? `${dayLabel(due).replace(/^am/, 'Am')} – steht im Kalender` : `Fällig bis ${relativeDate(due)}`) : 'Ohne Termin – oder eigenes Datum wählen'}</p>
         </div>
 
         {due && (fixed || repeat) && (

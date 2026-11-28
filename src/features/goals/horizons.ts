@@ -1,4 +1,4 @@
-import { addDays, endOfMonth, endOfWeek, endOfYear, fromISO, today } from '../../lib/dates'
+import { addDays, daysUntil, endOfMonth, endOfWeek, endOfYear, formatDate, fromISO, today } from '../../lib/dates'
 import type { Todo } from '../../lib/db'
 
 /** Sonntag der nächsten Woche */
@@ -50,18 +50,6 @@ export function groupOf(due: string | undefined): GroupId {
 }
 
 /**
- * Farbmodus der To-do-Liste: Farbfläche nach Dringlichkeit (Token mit 45 % Deckkraft), abgeleitet aus der Gruppe (also nur aus dem Fälligkeitsdatum).
- * Ab „Diesen Monat“ bewusst ohne Farbe. Klassen ausgeschrieben lassen, damit Tailwind sie findet.
- */
-const URGENCY: Partial<Record<GroupId, string>> = {
-  überfällig: 'bg-urg-4/45',
-  heute: 'bg-urg-3/45',
-  woche: 'bg-urg-2/45',
-  naechste: 'bg-urg-1/45',
-}
-export const urgencyOf = (group: GroupId | undefined) => (group ? URGENCY[group] : undefined)
-
-/**
  * Hat das To-do einen festen Tag (Kalender) oder nur ein Zeitraum-Ende? Wiederkehrende immer fest.
  * Ältere To-dos ohne `fixed`: Zeiträume enden immer auf einem Sonntag oder Monatsletzten – alles andere war ein eigenes Datum.
  */
@@ -90,3 +78,12 @@ export function isNow(t: Pick<Todo, 'start' | 'end'>, now = new Date()) {
 
 /** Sortierung innerhalb eines Tages: mit Uhrzeit zuerst (chronologisch), dann ohne. */
 export const byTime = (a: Pick<Todo, 'start'>, b: Pick<Todo, 'start'>) => (a.start ?? '99').localeCompare(b.start ?? '99')
+
+/** Konkreter Tag eines festen To-dos: „Heute“, „Morgen“, „am Montag“ (diese/nächste 6 Tage) oder „am 4. Dez.“ */
+export function dayLabel(due: string) {
+  const n = daysUntil(due)
+  if (n === 0) return 'Heute'
+  if (n === 1) return 'Morgen'
+  if (n > 1 && n < 7) return `am ${fromISO(due).toLocaleDateString('de-DE', { weekday: 'long' })}`
+  return `am ${formatDate(due)}`
+}
